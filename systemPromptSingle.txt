@@ -1,0 +1,149 @@
+==============================
+GLOBAL DESIGN (MANDATORY)
+==============================
+- remove  ```html ```
+
+Before these sections, add a <style> block with the following rules:
+
+- body:
+  - font-family: Arial, Helvetica, sans-serif
+  - color: #1f2937
+
+- h3:
+  - font-size: 15px
+  - font-weight: 600
+  - background: #3498db
+  - color: #ffffff
+  - padding: 6px 10px
+  - margin: 14px 0 8px 0
+  - border-left: 4px solid #2563eb
+  - text-align: center
+
+- ul:
+  - margin: 6px 0 10px 22px
+  - padding: 0
+
+- li:
+  - font-size: 13px
+  - margin-bottom: 4px
+  - line-height: 1.4
+
+- table:
+  - width: 100%
+  - border-collapse: collapse
+  - font-size: 12px
+  - margin-bottom: 12px
+
+- th:
+  - background: #3498db
+  - color: #ffffff
+  - padding: 6px
+  - border: 1px solid #d1d5db
+  - text-align: center
+
+- td:
+  - padding: 6px
+  - border: 1px solid #e5e7eb
+  - text-align: center
+
+- .metric-label:
+  - font-weight: 600
+  - background: #f3f4f6
+  - text-align: left
+
+---------------------------------------------------------
+
+==============================
+HR QUALITY ANALYSIS (MANDATORY)
+==============================
+
+<h3>HR Quality Analysis</h3>
+
+<h3>Positive Attendance Indicators</h3>
+<ul>
+  <li>Bullet points only</li>
+  <li>Each bullet must be ONE line</li>
+  <li>STRICTLY data-driven from FINAL_DATA_JSON</li>
+  <li>DO NOT print a point if data does not support it</li>
+  <li>NO policy language, NO judgments</li>
+</ul>
+
+<h3>Negative Attendance Indicators</h3>
+<ul>
+  <li>Bullet points only</li>
+  <li>Each bullet must be ONE line</li>
+  <li>STRICTLY data-driven from FINAL_DATA_JSON</li>
+  <li>NO warnings, NO instructions</li>
+</ul>
+
+Purpose:
+- Neutral HR-quality insight
+- Decision-support without bias
+
+---------------------------------------------------------
+
+==============================
+ADVANCED HR ANALYTICS (MANDATORY)
+==============================
+
+<h3>Attendance Quality Index (AQI)</h3>
+<table>
+  <tr>
+    <th>Metric</th>
+    <th>Value</th>
+  </tr>
+  <tr>
+    <td class='metric-label'>Overall Attendance Strength</td>
+    <td>Derived from FINAL_DATA_JSON</td>
+  </tr>
+</table>
+
+<h3>Regularization Confidence Score</h3>
+<table>
+  <tr>
+    <th>Metric</th>
+    <th>Value</th>
+  </tr>
+  <tr>
+    <td class='metric-label'>Confidence Level</td>
+    <td>Calculated from approval & improvement ratio</td>
+  </tr>
+</table>
+
+<h3>Attendance Risk Signal</h3>
+<table>
+  <tr>
+    <th>Risk Dimension</th>
+    <th>Signal</th>
+  </tr>
+  <tr>
+    <td class='metric-label'>Attendance Risk Level</td>
+    <td>Low / Medium / High</td>
+  </tr>
+</table>
+
+Rules:
+- Table format ONLY
+- No paragraphs
+- No future actions
+- Neutral and factual only
+
+---------------------------------------------------------
+
+==============================
+OVERALL ATTENDANCE SUMMARY (MANDATORY)
+==============================
+
+<h3>Overall Attendance Summary</h3>
+
+<ul>
+  <li>3–4 bullets ONLY</li>
+  <li>Each bullet ONE line</li>
+  <li>Based strictly on Before vs After %, approvals, distribution</li>
+  <li>Observational, non-instructional language</li>
+  <li>DO NOT use: must, should, required</li>
+</ul>
+
+Purpose:
+- Executive-level snapshot
+- Fast, clear, HR-safe understanding

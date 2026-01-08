@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HR Analytics Dashboard - Attendance Reports</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .dashboard-container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .dashboard-header {
+      background: white;
+      padding: 30px 40px;
+      border-radius: 20px 20px 0 0;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    .dashboard-header h1 {
+      font-size: 32px;
+      color: #1e293b;
+      margin-bottom: 10px;
+    }
+
+    .dashboard-header p {
+      color: #64748b;
+      font-size: 16px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      padding: 20px;
+      background: white;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .stat-card .number {
+      font-size: 36px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .stat-card .label {
+      font-size: 14px;
+      opacity: 0.9;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .reports-section {
+      background: white;
+      padding: 40px;
+      border-radius: 0 0 20px 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    .section-title {
+      font-size: 24px;
+      color: #1e293b;
+      margin-bottom: 30px;
+      padding-bottom: 15px;
+      border-bottom: 3px solid #667eea;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .report-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+
+    .report-card {
+      background: #f8fafc;
+      border-radius: 15px;
+      padding: 30px;
+      border: 2px solid #e2e8f0;
+      transition: all 0.3s;
+    }
+
+    .report-card:hover {
+      border-color: #667eea;
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+    }
+
+    .report-card h3 {
+      font-size: 20px;
+      color: #1e293b;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .report-card .description {
+      color: #64748b;
+      font-size: 14px;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 8px;
+    }
+
+    .form-group select,
+    .form-group input {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+      background: white;
+    }
+
+    .form-group select:focus,
+    .form-group input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .form-group .hint {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 5px;
+    }
+
+    /* Custom searchable select styling */
+    .searchable-select {
+      position: relative;
+    }
+
+    .searchable-select input.search-input {
+      cursor: pointer;
+    }
+
+    .searchable-select .dropdown-list {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 2px solid #667eea;
+      border-radius: 8px;
+      max-height: 250px;
+      overflow-y: auto;
+      z-index: 1000;
+      display: none;
+      margin-top: 5px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .searchable-select .dropdown-list.show {
+      display: block;
+    }
+
+    .searchable-select .dropdown-item {
+      padding: 12px 15px;
+      cursor: pointer;
+      border-bottom: 1px solid #f1f5f9;
+      transition: background-color 0.2s;
+    }
+
+    .searchable-select .dropdown-item:hover {
+      background-color: #f8fafc;
+    }
+
+    .searchable-select .dropdown-item.selected {
+      background-color: #ede9fe;
+      font-weight: 600;
+    }
+
+    .searchable-select .dropdown-item .item-id {
+      color: #94a3b8;
+      font-size: 12px;
+    }
+
+    .searchable-select .no-results {
+      padding: 12px 15px;
+      color: #94a3b8;
+      text-align: center;
+      font-style: italic;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .status-message {
+      margin-top: 15px;
+      padding: 12px 15px;
+      border-radius: 8px;
+      font-size: 14px;
+      display: none;
+    }
+
+    .status-message.success {
+      background: #dcfce7;
+      color: #16a34a;
+      border-left: 4px solid #16a34a;
+    }
+
+    .status-message.error {
+      background: #fee2e2;
+      color: #dc2626;
+      border-left: 4px solid #dc2626;
+    }
+
+    .status-message.loading {
+      background: #dbeafe;
+      color: #2563eb;
+      border-left: 4px solid #2563eb;
+    }
+
+    .recent-reports {
+      margin-top: 40px;
+      padding: 30px;
+      background: #f8fafc;
+      border-radius: 15px;
+    }
+
+    .recent-reports h3 {
+      font-size: 20px;
+      color: #1e293b;
+      margin-bottom: 20px;
+    }
+
+    .report-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .report-item {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-left: 4px solid #667eea;
+      transition: all 0.2s;
+    }
+
+    .report-item:hover {
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      transform: translateX(5px);
+    }
+
+    .report-info {
+      flex: 1;
+    }
+
+    .report-info .title {
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 5px;
+    }
+
+    .report-info .meta {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    .report-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .icon-btn {
+      padding: 8px 16px;
+      background: #f1f5f9;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      color: #667eea;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .icon-btn:hover {
+      background: #667eea;
+      color: white;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 20px;
+      color: white;
+      font-size: 14px;
+      margin-top: 20px;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .examples {
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+
+    .examples .title {
+      font-weight: 600;
+      color: #92400e;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    .examples .example-list {
+      font-size: 13px;
+      color: #78350f;
+      line-height: 1.8;
+    }
+
+    /* Multi-select styling */
+    .multi-select-container {
+      position: relative;
+    }
+
+    .selected-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .selected-item {
+      background: #ede9fe;
+      color: #5b21b6;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .selected-item .remove {
+      cursor: pointer;
+      font-weight: bold;
+      color: #7c3aed;
+    }
+
+    .selected-item .remove:hover {
+      color: #6d28d9;
+    }
+
+    @media (max-width: 768px) {
+      .report-cards {
+        grid-template-columns: 1fr;
+      }
+
+      .button-group {
+        flex-direction: column;
+      }
+
+      .report-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-container">
+    <!-- Header -->
+    <div class="dashboard-header">
+      <h1>📊 HR Analytics Dashboard</h1>
+      <p>Comprehensive Attendance Report Generation System</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="number">3</div>
+        <div class="label">Report Types</div>
+      </div>
+      <div class="stat-card">
+        <div class="number">1-999</div>
+        <div class="label">Dynamic Cycles</div>
+      </div>
+      <div class="stat-card">
+        <div class="number">AI</div>
+        <div class="label">Powered Analysis</div>
+      </div>
+      <div class="stat-card">
+        <div class="number">⚡</div>
+        <div class="label">Real-time Reports</div>
+      </div>
+    </div>
+
+    <!-- Reports Section -->
+    <div class="reports-section">
+      <h2 class="section-title">
+        📋 Generate Reports
+      </h2>
+
+      <div class="report-cards">
+        <!-- Staff Report Card -->
+        <div class="report-card">
+          <h3>👤 Staff Individual Report</h3>
+          <p class="description">
+            Generate comprehensive attendance analysis for a single employee including cycle-wise breakdown, date-wise status details, and AI-powered insights.
+          </p>
+
+          <form id="staffReportForm">
+            <div class="form-group">
+              <label for="staff_select">Select Staff Member *</label>
+              <div class="searchable-select" id="staffSelectContainer">
+                <input type="text" class="search-input" id="staff_search" placeholder="Search by name or ID..." autocomplete="off">
+                <div class="dropdown-list" id="staffDropdown"></div>
+              </div>
+              <input type="hidden" id="staff_id" name="staff_id">
+              <div class="hint">Type to search or scroll to select</div>
+            </div>
+
+            <div class="form-group">
+              <label for="staff_cycles">Number of Cycles</label>
+              <input type="number" id="staff_cycles" name="cycles" value="6" min="1" max="999" placeholder="6">
+              <div class="hint">Default: 6 cycles (6 months)</div>
+            </div>
+
+            <div class="button-group">
+              <button type="submit" class="btn btn-primary">
+                Generate Report
+              </button>
+            </div>
+
+            <div class="status-message" id="staffStatus"></div>
+          </form>
+
+          <div class="examples">
+            <div class="title">💡 Example Use Cases:</div>
+            <div class="example-list">
+              • Performance review preparation<br>
+              • Individual attendance audit<br>
+              • Regularization verification<br>
+              • Employee recognition
+            </div>
+          </div>
+        </div>
+
+        <!-- Department Report Card -->
+        <div class="report-card">
+          <h3>🏢 Department Report</h3>
+          <p class="description">
+            Generate department-wide attendance analysis including all staff members, cycle-wise summary, staff before/after table, and aggregate metrics.
+          </p>
+
+          <form id="departmentReportForm">
+            <div class="form-group">
+              <label for="department_select">Select Department *</label>
+              <div class="searchable-select" id="deptSelectContainer">
+                <input type="text" class="search-input" id="dept_search" placeholder="Search by department name..." autocomplete="off">
+                <div class="dropdown-list" id="deptDropdown"></div>
+              </div>
+              <input type="hidden" id="department_id" name="department_id">
+              <div class="hint">Type to search or scroll to select</div>
+            </div>
+
+            <div class="form-group">
+              <label for="dept_cycles">Number of Cycles</label>
+              <input type="number" id="dept_cycles" name="cycles" value="6" min="1" max="999" placeholder="6">
+              <div class="hint">Default: 6 cycles (6 months)</div>
+            </div>
+
+            <div class="button-group">
+              <button type="submit" class="btn btn-primary">
+                Generate Report
+              </button>
+            </div>
+
+            <div class="status-message" id="deptStatus"></div>
+          </form>
+
+          <div class="examples">
+            <div class="title">💡 Example Use Cases:</div>
+            <div class="example-list">
+              • Department performance review<br>
+              • Resource planning<br>
+              • Budget allocation<br>
+              • Team balancing decisions
+            </div>
+          </div>
+        </div>
+
+        <!-- Comparison Report Card -->
+        <div class="report-card">
+          <h3>⚖️ Staff Comparison Report</h3>
+          <p class="description">
+            Compare multiple staff members side-by-side with overall summary table, cycle-wise comparison, and performance analysis.
+          </p>
+
+          <form id="comparisonReportForm">
+            <div class="form-group">
+              <label for="comp_staff_select">Select Staff Members (minimum 2) *</label>
+              <div class="multi-select-container">
+                <div class="searchable-select" id="compStaffSelectContainer">
+                  <input type="text" class="search-input" id="comp_staff_search" placeholder="Search and select staff members..." autocomplete="off">
+                  <div class="dropdown-list" id="compStaffDropdown"></div>
+                </div>
+                <div class="selected-items" id="selectedStaffList"></div>
+              </div>
+              <div class="hint">Select 2 or more staff members to compare</div>
+            </div>
+
+            <div class="form-group">
+              <label for="comp_cycles">Number of Cycles</label>
+              <input type="number" id="comp_cycles" name="cycles" value="6" min="1" max="999" placeholder="6">
+              <div class="hint">Default: 6 cycles (6 months)</div>
+            </div>
+
+            <div class="button-group">
+              <button type="submit" class="btn btn-primary">
+                Generate Report
+              </button>
+            </div>
+
+            <div class="status-message" id="compStatus"></div>
+          </form>
+
+          <div class="examples">
+            <div class="title">💡 Example Use Cases:</div>
+            <div class="example-list">
+              • Promotion decisions<br>
+              • Performance benchmarking<br>
+              • Team member comparison<br>
+              • Recognition programs
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Reports -->
+      <div class="recent-reports">
+        <h3>🕐 Recently Generated Reports</h3>
+        <div class="report-list" id="recentReportsList">
+          <div style="text-align: center; color: #94a3b8; padding: 20px;">
+            No reports generated yet. Create your first report above!
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p><strong>HR Analytics System v1.2.1</strong></p>
+      <p>Powered by Node.js, MySQL, and Mistral AI</p>
+      <p style="margin-top: 10px; font-size: 12px; opacity: 0.8;">
+        © 2025 - Confidential and Proprietary
+      </p>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE_URL = window.location.origin;
+    let staffList = [];
+    let departmentList = [];
+    let selectedComparisonStaff = [];
+    let recentReports = [];
+
+    // Initialize dashboard
+    async function initDashboard() {
+      try {
+        await Promise.all([
+          loadStaffList(),
+          loadDepartmentList()
+        ]);
+        loadRecentReports();
+        setupEventListeners();
+      } catch (error) {
+        console.error('Dashboard initialization error:', error);
+      }
+    }
+
+    // Load staff list from API
+    async function loadStaffList() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/staff/list`);
+        const data = await response.json();
+        if (data.success) {
+          staffList = data.data;
+          console.log(`✅ Loaded ${staffList.length} staff members`);
+        }
+      } catch (error) {
+        console.error('Error loading staff:', error);
+      }
+    }
+
+    // Load department list from API
+    async function loadDepartmentList() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/departments/list`);
+        const data = await response.json();
+        if (data.success) {
+          departmentList = data.data;
+          console.log(`✅ Loaded ${departmentList.length} departments`);
+        }
+      } catch (error) {
+        console.error('Error loading departments:', error);
+      }
+    }
+
+    // Setup all event listeners
+    function setupEventListeners() {
+      // Staff select
+      setupSearchableSelect('staff_search', 'staffDropdown', 'staff_id', staffList, 
+        (item) => `${item.staff_name} <span class="item-id">(ID: ${item.staff_id})</span>`,
+        (item) => item.staff_id
+      );
+
+      // Department select
+      setupSearchableSelect('dept_search', 'deptDropdown', 'department_id', departmentList,
+        (item) => `${item.department_name} <span class="item-id">(ID: ${item.department_id})</span>`,
+        (item) => item.department_id
+      );
+
+      // Comparison staff multi-select
+      setupMultiSelect('comp_staff_search', 'compStaffDropdown', staffList);
+
+      // Form submissions
+      document.getElementById('staffReportForm').addEventListener('submit', handleStaffReportSubmit);
+      document.getElementById('departmentReportForm').addEventListener('submit', handleDepartmentReportSubmit);
+      document.getElementById('comparisonReportForm').addEventListener('submit', handleComparisonReportSubmit);
+    }
+
+    // Setup searchable select dropdown
+    function setupSearchableSelect(searchInputId, dropdownId, hiddenInputId, dataList, displayFn, valueFn) {
+      const searchInput = document.getElementById(searchInputId);
+      const dropdown = document.getElementById(dropdownId);
+      const hiddenInput = document.getElementById(hiddenInputId);
+
+      // Show dropdown on focus
+      searchInput.addEventListener('focus', () => {
+        renderDropdown(dropdown, dataList, searchInput.value, displayFn, (item) => {
+          searchInput.value = item.staff_name || item.department_name;
+          hiddenInput.value = valueFn(item);
+          dropdown.classList.remove('show');
+        });
+        dropdown.classList.add('show');
+      });
+
+      // Filter on input
+      searchInput.addEventListener('input', () => {
+        const searchTerm = searchInput.value.toLowerCase();
+        const filtered = dataList.filter(item => {
+          const name = (item.staff_name || item.department_name).toLowerCase();
+          const id = String(item.staff_id || item.department_id);
+          return name.includes(searchTerm) || id.includes(searchTerm);
+        });
+        renderDropdown(dropdown, filtered, searchTerm, displayFn, (item) => {
+          searchInput.value = item.staff_name || item.department_name;
+          hiddenInput.value = valueFn(item);
+          dropdown.classList.remove('show');
+        });
+      });
+
+      // Close dropdown when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+          dropdown.classList.remove('show');
+        }
+      });
+    }
+
+    // Render dropdown items
+    function renderDropdown(dropdown, items, searchTerm, displayFn, onSelectFn) {
+      if (items.length === 0) {
+        dropdown.innerHTML = '<div class="no-results">No results found</div>';
+        return;
+      }
+
+      dropdown.innerHTML = items.map(item => 
+        `<div class="dropdown-item" data-value="${item.staff_id || item.department_id}">
+          ${displayFn(item)}
+        </div>`
+      ).join('');
+
+      // Add click handlers
+      dropdown.querySelectorAll('.dropdown-item').forEach(el => {
+        el.addEventListener('click', () => {
+          const value = el.getAttribute('data-value');
+          const item = items.find(i => String(i.staff_id || i.department_id) === value);
+          if (item) onSelectFn(item);
+        });
+      });
+    }
+
+    // Setup multi-select for comparison
+    function setupMultiSelect(searchInputId, dropdownId, dataList) {
+      const searchInput = document.getElementById(searchInputId);
+      const dropdown = document.getElementById(dropdownId);
+      const selectedList = document.getElementById('selectedStaffList');
+
+      searchInput.addEventListener('focus', () => {
+        renderMultiSelectDropdown(dropdown, dataList, searchInput.value);
+        dropdown.classList.add('show');
+      });
+
+      searchInput.addEventListener('input', () => {
+        const searchTerm = searchInput.value.toLowerCase();
+        const filtered = dataList.filter(item => {
+          const name = item.staff_name.toLowerCase();
+          const id = String(item.staff_id);
+          const notSelected = !selectedComparisonStaff.includes(item.staff_id);
+          return notSelected && (name.includes(searchTerm) || id.includes(searchTerm));
+        });
+        renderMultiSelectDropdown(dropdown, filtered, searchTerm);
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+          dropdown.classList.remove('show');
+        }
+      });
+
+      function renderMultiSelectDropdown(dropdown, items, searchTerm = '') {
+        const availableItems = items.filter(item => 
+          !selectedComparisonStaff.includes(item.staff_id)
+        );
+
+        if (availableItems.length === 0) {
+          dropdown.innerHTML = '<div class="no-results">No more staff to select</div>';
+          return;
+        }
+
+        dropdown.innerHTML = availableItems.map(item =>
+          `<div class="dropdown-item" data-value="${item.staff_id}">
+            ${item.staff_name} <span class="item-id">(ID: ${item.staff_id})</span>
+          </div>`
+        ).join('');
+
+        dropdown.querySelectorAll('.dropdown-item').forEach(el => {
+          el.addEventListener('click', () => {
+            const staffId = parseInt(el.getAttribute('data-value'));
+            addStaffToComparison(staffId);
+            searchInput.value = '';
+            renderMultiSelectDropdown(dropdown, dataList);
+          });
+        });
+      }
+    }
+
+    // Add staff to comparison list
+    function addStaffToComparison(staffId) {
+      if (!selectedComparisonStaff.includes(staffId)) {
+        selectedComparisonStaff.push(staffId);
+        renderSelectedStaff();
+      }
+    }
+
+    // Remove staff from comparison list
+    function removeStaffFromComparison(staffId) {
+      selectedComparisonStaff = selectedComparisonStaff.filter(id => id !== staffId);
+      renderSelectedStaff();
+    }
+
+    // Render selected staff badges
+    function renderSelectedStaff() {
+      const container = document.getElementById('selectedStaffList');
+      if (selectedComparisonStaff.length === 0) {
+        container.innerHTML = '';
+        return;
+      }
+
+      container.innerHTML = selectedComparisonStaff.map(staffId => {
+        const staff = staffList.find(s => s.staff_id === staffId);
+        if (!staff) return '';
+        return `
+          <div class="selected-item">
+            <span>${staff.staff_name}</span>
+            <span class="remove" onclick="removeStaffFromComparison(${staffId})">×</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Show status message
+    function showStatus(formId, type, message) {
+      const statusEl = document.getElementById(formId + 'Status');
+      statusEl.className = `status-message ${type}`;
+      statusEl.style.display = 'block';
+      
+      if (type === 'loading') {
+        statusEl.innerHTML = `<span class="loading-spinner"></span>${message}`;
+      } else {
+        statusEl.textContent = message;
+      }
+
+      if (type !== 'loading') {
+        setTimeout(() => {
+          statusEl.style.display = 'none';
+        }, 5000);
+      }
+    }
+
+    // Handle staff report submission
+    async function handleStaffReportSubmit(e) {
+      e.preventDefault();
+      
+      const staff_id = document.getElementById('staff_id').value;
+      const cycles = document.getElementById('staff_cycles').value || 6;
+
+      if (!staff_id) {
+        showStatus('staff', 'error', '✗ Please select a staff member');
+        return;
+      }
+
+      showStatus('staff', 'loading', 'Generating staff report...');
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/staffAttendanceAnalysisReportUpdate/${staff_id}?cycles=${cycles}`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const html = await response.text();
+        const newWindow = window.open('', '_blank');
+        newWindow.document.write(html);
+        newWindow.document.close();
+
+        const staff = staffList.find(s => s.staff_id === parseInt(staff_id));
+        showStatus('staff', 'success', '✓ Report generated successfully!');
+        addToRecentReports('staff', { staff_id, staff_name: staff?.staff_name, cycles });
+      } catch (error) {
+        showStatus('staff', 'error', '✗ Error: ' + error.message);
+      }
+    }
+
+    // Handle department report submission
+    async function handleDepartmentReportSubmit(e) {
+      e.preventDefault();
+      
+      const department_id = document.getElementById('department_id').value;
+      const cycles = document.getElementById('dept_cycles').value || 6;
+
+      if (!department_id) {
+        showStatus('dept', 'error', '✗ Please select a department');
+        return;
+      }
+
+      showStatus('dept', 'loading', 'Generating department report...');
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/departmentAttendanceReport/${department_id}?cycles=${cycles}`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const html = await response.text();
+        const newWindow = window.open('', '_blank');
+        newWindow.document.write(html);
+        newWindow.document.close();
+
+        const dept = departmentList.find(d => d.department_id === parseInt(department_id));
+        showStatus('dept', 'success', '✓ Report generated successfully!');
+        addToRecentReports('department', { department_id, department_name: dept?.department_name, cycles });
+      } catch (error) {
+        showStatus('dept', 'error', '✗ Error: ' + error.message);
+      }
+    }
+
+    // Handle comparison report submission
+    async function handleComparisonReportSubmit(e) {
+      e.preventDefault();
+      
+      const cycles = document.getElementById('comp_cycles').value || 6;
+
+      if (selectedComparisonStaff.length < 2) {
+        showStatus('comp', 'error', '✗ Please select at least 2 staff members');
+        return;
+      }
+
+      showStatus('comp', 'loading', 'Generating comparison report...');
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/staffComparisonReport`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ staff_ids: selectedComparisonStaff, cycles: parseInt(cycles) })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const html = await response.text();
+        const newWindow = window.open('', '_blank');
+        newWindow.document.write(html);
+        newWindow.document.close();
+
+        showStatus('comp', 'success', '✓ Report generated successfully!');
+        addToRecentReports('comparison', { staff_ids: [...selectedComparisonStaff], cycles });
+      } catch (error) {
+        showStatus('comp', 'error', '✗ Error: ' + error.message);
+      }
+    }
+
+    // Recent reports functions
+    function loadRecentReports() {
+      const stored = localStorage.getItem('recentReports');
+      if (stored) {
+        recentReports = JSON.parse(stored);
+        displayRecentReports();
+      }
+    }
+
+    function saveRecentReports() {
+      localStorage.setItem('recentReports', JSON.stringify(recentReports));
+    }
+
+    function addToRecentReports(type, params) {
+      const report = {
+        id: Date.now(),
+        type,
+        params,
+        timestamp: new Date().toISOString()
+      };
+
+      recentReports.unshift(report);
+      if (recentReports.length > 10) {
+        recentReports = recentReports.slice(0, 10);
+      }
+
+      saveRecentReports();
+      displayRecentReports();
+    }
+
+    function displayRecentReports() {
+      const container = document.getElementById('recentReportsList');
+      
+      if (recentReports.length === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; color: #94a3b8; padding: 20px;">
+            No reports generated yet. Create your first report above!
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = recentReports.map(report => {
+        const date = new Date(report.timestamp);
+        const timeStr = date.toLocaleString();
+        
+        let title = '';
+        let meta = '';
+
+        if (report.type === 'staff') {
+          title = `Staff Report - ${report.params.staff_name || 'ID: ' + report.params.staff_id}`;
+          meta = `${report.params.cycles || 6} cycles`;
+        } else if (report.type === 'department') {
+          title = `Department Report - ${report.params.department_name || 'ID: ' + report.params.department_id}`;
+          meta = `${report.params.cycles || 6} cycles`;
+        } else if (report.type === 'comparison') {
+          title = `Staff Comparison - ${report.params.staff_ids.length} staff members`;
+          meta = `${report.params.staff_ids.length} staff, ${report.params.cycles || 6} cycles`;
+        }
+
+        return `
+          <div class="report-item">
+            <div class="report-info">
+              <div class="title">${title}</div>
+              <div class="meta">${timeStr} • ${meta}</div>
+            </div>
+            <div class="report-actions">
+              <button class="icon-btn" onclick="regenerateReport(${report.id})">
+                🔄 Regenerate
+              </button>
+              <button class="icon-btn" onclick="deleteReport(${report.id})">
+                🗑️ Delete
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function regenerateReport(reportId) {
+      const report = recentReports.find(r => r.id === reportId);
+      if (!report) return;
+
+      if (report.type === 'staff') {
+        document.getElementById('staff_id').value = report.params.staff_id;
+        document.getElementById('staff_search').value = report.params.staff_name || '';
+        document.getElementById('staff_cycles').value = report.params.cycles || 6;
+        document.getElementById('staffReportForm').dispatchEvent(new Event('submit'));
+      } else if (report.type === 'department') {
+        document.getElementById('department_id').value = report.params.department_id;
+        document.getElementById('dept_search').value = report.params.department_name || '';
+        document.getElementById('dept_cycles').value = report.params.cycles || 6;
+        document.getElementById('departmentReportForm').dispatchEvent(new Event('submit'));
+      } else if (report.type === 'comparison') {
+        selectedComparisonStaff = [...report.params.staff_ids];
+        renderSelectedStaff();
+        document.getElementById('comp_cycles').value = report.params.cycles || 6;
+        document.getElementById('comparisonReportForm').dispatchEvent(new Event('submit'));
+      }
+    }
+
+    function deleteReport(reportId) {
+      if (confirm('Remove this report from recent list?')) {
+        recentReports = recentReports.filter(r => r.id !== reportId);
+        saveRecentReports();
+        displayRecentReports();
+      }
+    }
+
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initDashboard);
+    } else {
+      initDashboard();
+    }
+  </script>
+</body>
+</html>
