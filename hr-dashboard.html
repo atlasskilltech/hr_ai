@@ -458,7 +458,7 @@
     <!-- Stats -->
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="number">3</div>
+        <div class="number">4</div>
         <div class="label">Report Types</div>
       </div>
       <div class="stat-card">
@@ -570,7 +570,7 @@
           </div>
         </div>
 
-        <!-- Comparison Report Card -->
+        <!-- Staff Comparison Report Card -->
         <div class="report-card">
           <h3>⚖️ Staff Comparison Report</h3>
           <p class="description">
@@ -615,6 +615,52 @@
             </div>
           </div>
         </div>
+
+        <!-- Department Comparison Report Card -->
+        <div class="report-card">
+          <h3>🏢⚖️ Department Comparison Report</h3>
+          <p class="description">
+            Compare multiple departments side-by-side with overall summary table, cycle-wise comparison, and cross-department performance analysis.
+          </p>
+
+          <form id="deptComparisonReportForm">
+            <div class="form-group">
+              <label for="comp_dept_select">Select Departments (minimum 2) *</label>
+              <div class="multi-select-container">
+                <div class="searchable-select" id="compDeptSelectContainer">
+                  <input type="text" class="search-input" id="comp_dept_search" placeholder="Search and select departments..." autocomplete="off">
+                  <div class="dropdown-list" id="compDeptDropdown"></div>
+                </div>
+                <div class="selected-items" id="selectedDeptList"></div>
+              </div>
+              <div class="hint">Select 2 or more departments to compare</div>
+            </div>
+
+            <div class="form-group">
+              <label for="comp_dept_cycles">Number of Cycles</label>
+              <input type="number" id="comp_dept_cycles" name="cycles" value="6" min="1" max="999" placeholder="6">
+              <div class="hint">Default: 6 cycles (6 months)</div>
+            </div>
+
+            <div class="button-group">
+              <button type="submit" class="btn btn-primary">
+                Generate Report
+              </button>
+            </div>
+
+            <div class="status-message" id="deptCompStatus"></div>
+          </form>
+
+          <div class="examples">
+            <div class="title">💡 Example Use Cases:</div>
+            <div class="example-list">
+              • Cross-department performance<br>
+              • Resource allocation decisions<br>
+              • Budget comparison<br>
+              • Organizational benchmarking
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Recent Reports -->
@@ -630,7 +676,7 @@
 
     <!-- Footer -->
     <div class="footer">
-      <p><strong>HR Analytics System v1.2.1</strong></p>
+      <p><strong>HR Analytics System v1.3.0</strong></p>
       <p>Powered by Node.js, MySQL, and Mistral AI</p>
       <p style="margin-top: 10px; font-size: 12px; opacity: 0.8;">
         © 2025 - Confidential and Proprietary
@@ -643,6 +689,7 @@
     let staffList = [];
     let departmentList = [];
     let selectedComparisonStaff = [];
+    let selectedComparisonDepartments = [];
     let recentReports = [];
 
     // Initialize dashboard
@@ -702,12 +749,16 @@
       );
 
       // Comparison staff multi-select
-      setupMultiSelect('comp_staff_search', 'compStaffDropdown', staffList);
+      setupMultiSelect('comp_staff_search', 'compStaffDropdown', staffList, false);
+
+      // Comparison department multi-select
+      setupMultiSelect('comp_dept_search', 'compDeptDropdown', departmentList, true);
 
       // Form submissions
       document.getElementById('staffReportForm').addEventListener('submit', handleStaffReportSubmit);
       document.getElementById('departmentReportForm').addEventListener('submit', handleDepartmentReportSubmit);
       document.getElementById('comparisonReportForm').addEventListener('submit', handleComparisonReportSubmit);
+      document.getElementById('deptComparisonReportForm').addEventListener('submit', handleDepartmentComparisonReportSubmit);
     }
 
     // Setup searchable select dropdown
@@ -772,26 +823,28 @@
       });
     }
 
-    // Setup multi-select for comparison
-    function setupMultiSelect(searchInputId, dropdownId, dataList) {
+    // Setup multi-select for comparison (works for both staff and departments)
+    function setupMultiSelect(searchInputId, dropdownId, dataList, isDepartment = false) {
       const searchInput = document.getElementById(searchInputId);
       const dropdown = document.getElementById(dropdownId);
-      const selectedList = document.getElementById('selectedStaffList');
+      const selectedList = document.getElementById(isDepartment ? 'selectedDeptList' : 'selectedStaffList');
+      const selectedArray = isDepartment ? selectedComparisonDepartments : selectedComparisonStaff;
 
       searchInput.addEventListener('focus', () => {
-        renderMultiSelectDropdown(dropdown, dataList, searchInput.value);
+        renderMultiSelectDropdown(dropdown, dataList, searchInput.value, isDepartment);
         dropdown.classList.add('show');
       });
 
       searchInput.addEventListener('input', () => {
         const searchTerm = searchInput.value.toLowerCase();
         const filtered = dataList.filter(item => {
-          const name = item.staff_name.toLowerCase();
-          const id = String(item.staff_id);
-          const notSelected = !selectedComparisonStaff.includes(item.staff_id);
+          const name = (item.staff_name || item.department_name).toLowerCase();
+          const id = String(item.staff_id || item.department_id);
+          const itemId = item.staff_id || item.department_id;
+          const notSelected = !selectedArray.includes(itemId);
           return notSelected && (name.includes(searchTerm) || id.includes(searchTerm));
         });
-        renderMultiSelectDropdown(dropdown, filtered, searchTerm);
+        renderMultiSelectDropdown(dropdown, filtered, searchTerm, isDepartment);
       });
 
       document.addEventListener('click', (e) => {
@@ -800,28 +853,35 @@
         }
       });
 
-      function renderMultiSelectDropdown(dropdown, items, searchTerm = '') {
-        const availableItems = items.filter(item => 
-          !selectedComparisonStaff.includes(item.staff_id)
-        );
+      function renderMultiSelectDropdown(dropdown, items, searchTerm = '', isDept = false) {
+        const availableItems = items.filter(item => {
+          const itemId = item.staff_id || item.department_id;
+          return !selectedArray.includes(itemId);
+        });
 
         if (availableItems.length === 0) {
-          dropdown.innerHTML = '<div class="no-results">No more staff to select</div>';
+          dropdown.innerHTML = `<div class="no-results">No more ${isDept ? 'departments' : 'staff'} to select</div>`;
           return;
         }
 
-        dropdown.innerHTML = availableItems.map(item =>
-          `<div class="dropdown-item" data-value="${item.staff_id}">
-            ${item.staff_name} <span class="item-id">(ID: ${item.staff_id})</span>
-          </div>`
-        ).join('');
+        dropdown.innerHTML = availableItems.map(item => {
+          const name = item.staff_name || item.department_name;
+          const id = item.staff_id || item.department_id;
+          return `<div class="dropdown-item" data-value="${id}">
+            ${name} <span class="item-id">(ID: ${id})</span>
+          </div>`;
+        }).join('');
 
         dropdown.querySelectorAll('.dropdown-item').forEach(el => {
           el.addEventListener('click', () => {
-            const staffId = parseInt(el.getAttribute('data-value'));
-            addStaffToComparison(staffId);
+            const itemId = parseInt(el.getAttribute('data-value'));
+            if (isDept) {
+              addDepartmentToComparison(itemId);
+            } else {
+              addStaffToComparison(itemId);
+            }
             searchInput.value = '';
-            renderMultiSelectDropdown(dropdown, dataList);
+            renderMultiSelectDropdown(dropdown, dataList, '', isDept);
           });
         });
       }
@@ -856,6 +916,40 @@
           <div class="selected-item">
             <span>${staff.staff_name}</span>
             <span class="remove" onclick="removeStaffFromComparison(${staffId})">×</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Add department to comparison list
+    function addDepartmentToComparison(deptId) {
+      if (!selectedComparisonDepartments.includes(deptId)) {
+        selectedComparisonDepartments.push(deptId);
+        renderSelectedDepartments();
+      }
+    }
+
+    // Remove department from comparison list
+    function removeDepartmentFromComparison(deptId) {
+      selectedComparisonDepartments = selectedComparisonDepartments.filter(id => id !== deptId);
+      renderSelectedDepartments();
+    }
+
+    // Render selected departments badges
+    function renderSelectedDepartments() {
+      const container = document.getElementById('selectedDeptList');
+      if (selectedComparisonDepartments.length === 0) {
+        container.innerHTML = '';
+        return;
+      }
+
+      container.innerHTML = selectedComparisonDepartments.map(deptId => {
+        const dept = departmentList.find(d => d.department_id === deptId);
+        if (!dept) return '';
+        return `
+          <div class="selected-item">
+            <span>${dept.department_name}</span>
+            <span class="remove" onclick="removeDepartmentFromComparison(${deptId})">×</span>
           </div>
         `;
       }).join('');
@@ -948,7 +1042,7 @@
       }
     }
 
-    // Handle comparison report submission
+    // Handle staff comparison report submission
     async function handleComparisonReportSubmit(e) {
       e.preventDefault();
       
@@ -983,6 +1077,44 @@
         addToRecentReports('comparison', { staff_ids: [...selectedComparisonStaff], cycles });
       } catch (error) {
         showStatus('comp', 'error', '✗ Error: ' + error.message);
+      }
+    }
+
+    // Handle department comparison report submission
+    async function handleDepartmentComparisonReportSubmit(e) {
+      e.preventDefault();
+      
+      const cycles = document.getElementById('comp_dept_cycles').value || 6;
+
+      if (selectedComparisonDepartments.length < 2) {
+        showStatus('deptComp', 'error', '✗ Please select at least 2 departments');
+        return;
+      }
+
+      showStatus('deptComp', 'loading', 'Generating department comparison report...');
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/departmentComparisonReport`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ department_ids: selectedComparisonDepartments, cycles: parseInt(cycles) })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const html = await response.text();
+        const newWindow = window.open('', '_blank');
+        newWindow.document.write(html);
+        newWindow.document.close();
+
+        showStatus('deptComp', 'success', '✓ Report generated successfully!');
+        addToRecentReports('department_comparison', { department_ids: [...selectedComparisonDepartments], cycles });
+      } catch (error) {
+        showStatus('deptComp', 'error', '✗ Error: ' + error.message);
       }
     }
 
@@ -1044,6 +1176,9 @@
         } else if (report.type === 'comparison') {
           title = `Staff Comparison - ${report.params.staff_ids.length} staff members`;
           meta = `${report.params.staff_ids.length} staff, ${report.params.cycles || 6} cycles`;
+        } else if (report.type === 'department_comparison') {
+          title = `Department Comparison - ${report.params.department_ids.length} departments`;
+          meta = `${report.params.department_ids.length} departments, ${report.params.cycles || 6} cycles`;
         }
 
         return `
@@ -1084,6 +1219,11 @@
         renderSelectedStaff();
         document.getElementById('comp_cycles').value = report.params.cycles || 6;
         document.getElementById('comparisonReportForm').dispatchEvent(new Event('submit'));
+      } else if (report.type === 'department_comparison') {
+        selectedComparisonDepartments = [...report.params.department_ids];
+        renderSelectedDepartments();
+        document.getElementById('comp_dept_cycles').value = report.params.cycles || 6;
+        document.getElementById('deptComparisonReportForm').dispatchEvent(new Event('submit'));
       }
     }
 
