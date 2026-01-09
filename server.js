@@ -65,7 +65,7 @@ app.get("/api/departments/list", async (req, res) => {
         staff_department_id as department_id,
         staff_department_name as department_name,
         staff_department_head as department_head_id
-      FROM dice_staff_department
+      FROM dice_staff_department where staff_department_active = 0
       ORDER BY staff_department_name
     `);
     res.json({ success: true, data: departments });
@@ -1536,9 +1536,8 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
     const numCycles = parseInt(req.query.cycles) || 6; // Default 6 cycles
     console.log("Department ID:", department_id, "Cycles:", numCycles);
 
-    // Get department details
     const [deptInfo] = await db.query(
-      "SELECT staff_department_name as department_name, staff_department_id as department_head_staff_id FROM dice_staff_department  WHERE staff_department_id=?",
+      "SELECT staff_department_name as department_name, staff_department_head as department_head_staff_id FROM dice_staff_department WHERE staff_department_id=?",
       [department_id]
     );
 
