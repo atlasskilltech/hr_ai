@@ -96,11 +96,6 @@ app.get("/api/departments/:department_id/staff", async (req, res) => {
 });
 
 /* =========================================================
-   UTILITY: BUILD CYCLES DYNAMICALLY
-========================================================= */
-
-
-/* =========================================================
    UTILITY: CHECK IF WORKING HOURS COMPLETED
 ========================================================= */
 function getEnhancedStatus(statusRaw, totalTime) {
@@ -399,6 +394,30 @@ function getModernStyles() {
         color: #dc2626;
       }
 
+      .stat-value-group {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .before-after-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .before-after-badge.before {
+        background: #fee2e2;
+        color: #dc2626;
+      }
+
+      .before-after-badge.after {
+        background: #dcfce7;
+        color: #16a34a;
+      }
+
       .metric-badge {
         display: inline-block;
         padding: 4px 12px;
@@ -578,23 +597,52 @@ function buildModernGraphHTML(chartData, canvasId = "attendanceGraph") {
               }
             },
             datalabels: {
-              anchor: "end",
-              align: "top",
+              anchor: function(context) {
+                const value = context.dataset.data[context.dataIndex];
+                return value > 5 ? 'end' : 'end';
+              },
+              align: function(context) {
+                const value = context.dataset.data[context.dataIndex];
+                return value > 5 ? 'top' : 'top';
+              },
+              offset: function(context) {
+                const value = context.dataset.data[context.dataIndex];
+                return value > 5 ? 0 : 4;
+              },
               color: "#1e293b",
-              font: { weight: "bold", size: 11 },
+              font: { weight: "bold", size: 10 },
               formatter: (value, ctx) => {
                 const i = ctx.dataIndex;
                 const count = ctx.dataset.label.includes("Before")
                   ? chartData_${canvasId}.before_count[i]
                   : chartData_${canvasId}.after_count[i];
-                return value + "% (" + count + ")";
-              }
+                
+                // Only show label if there's data
+                if (count === 0 && value === 0) {
+                  return '';
+                }
+                
+                // Return array for multi-line label
+                return [value + "%", "(" + count + ")"];
+              },
+              rotation: 0,
+              clamp: true,
+              clip: false
             },
             tooltip: {
               backgroundColor: "rgba(0, 0, 0, 0.8)",
               padding: 12,
               titleFont: { size: 14 },
-              bodyFont: { size: 13 }
+              bodyFont: { size: 13 },
+              callbacks: {
+                label: function(context) {
+                  const i = context.dataIndex;
+                  const count = context.dataset.label.includes("Before")
+                    ? chartData_${canvasId}.before_count[i]
+                    : chartData_${canvasId}.after_count[i];
+                  return context.dataset.label + ': ' + context.parsed.y + '% (' + count + ' days)';
+                }
+              }
             }
           },
           scales: {
@@ -610,8 +658,17 @@ function buildModernGraphHTML(chartData, canvasId = "attendanceGraph") {
               }
             },
             x: {
-              ticks: { font: { size: 12 } },
+              ticks: { 
+                font: { size: 11 },
+                maxRotation: 45,
+                minRotation: 45
+              },
               grid: { display: false }
+            }
+          },
+          layout: {
+            padding: {
+              top: 40
             }
           }
         }
@@ -696,14 +753,22 @@ function buildDepartmentComparisonHTML(departmentDataArray) {
   let cardsHTML = "";
 
   departmentDataArray.forEach(dept => {
-    const totalDays = Object.values(dept.summary_after).reduce((a,b) => a+b, 0);
-    const presentPercent = totalDays > 0 
-      ? ((dept.summary_after.present / totalDays) * 100).toFixed(1)
+    const totalDaysBefore = Object.values(dept.summary_before).reduce((a,b) => a+b, 0);
+    const totalDaysAfter = Object.values(dept.summary_after).reduce((a,b) => a+b, 0);
+    
+    const presentPercentBefore = totalDaysBefore > 0 
+      ? ((dept.summary_before.present / totalDaysBefore) * 100).toFixed(1)
+      : 0;
+    const presentPercentAfter = totalDaysAfter > 0 
+      ? ((dept.summary_after.present / totalDaysAfter) * 100).toFixed(1)
       : 0;
     
-    const badge = presentPercent >= 95 ? "excellent" : 
-                  presentPercent >= 85 ? "good" : 
-                  presentPercent >= 70 ? "warning" : "poor";
+    const badgeBefore = presentPercentBefore >= 95 ? "excellent" : 
+                  presentPercentBefore >= 85 ? "good" : 
+                  presentPercentBefore >= 70 ? "warning" : "poor";
+    const badgeAfter = presentPercentAfter >= 95 ? "excellent" : 
+                  presentPercentAfter >= 85 ? "good" : 
+                  presentPercentAfter >= 70 ? "warning" : "poor";
 
     cardsHTML += `
       <div class="staff-card">
@@ -714,25 +779,48 @@ function buildDepartmentComparisonHTML(departmentDataArray) {
         </div>
         <div class="stat-row">
           <span class="stat-label">Present Days:</span>
-          <span class="stat-value positive">${dept.summary_after.present || 0}</span>
+          <div class="stat-value-group">
+            <span class="before-after-badge before">Before: ${dept.summary_before.present || 0}</span>
+            <span>→</span>
+            <span class="before-after-badge after">After: ${dept.summary_after.present || 0}</span>
+          </div>
         </div>
         <div class="stat-row">
           <span class="stat-label">Absent Days:</span>
-          <span class="stat-value negative">${dept.summary_after.absent || 0}</span>
+          <div class="stat-value-group">
+            <span class="before-after-badge before">Before: ${dept.summary_before.absent || 0}</span>
+            <span>→</span>
+            <span class="before-after-badge after">After: ${dept.summary_after.absent || 0}</span>
+          </div>
         </div>
         <div class="stat-row">
           <span class="stat-label">On Leave:</span>
-          <span class="stat-value">${dept.summary_after.on_leave || 0}</span>
+          <div class="stat-value-group">
+            <span class="before-after-badge before">Before: ${dept.summary_before.on_leave || 0}</span>
+            <span>→</span>
+            <span class="before-after-badge after">After: ${dept.summary_after.on_leave || 0}</span>
+          </div>
         </div>
         <div class="stat-row">
           <span class="stat-label">Irregularities:</span>
+          <div class="stat-value-group">
+            <span class="before-after-badge before">Before: ${dept.irregularity_analysis.irregularities_before || 0}</span>
+            <span>→</span>
+            <span class="before-after-badge after">After: ${dept.irregularity_analysis.irregularities_after || 0}</span>
+          </div>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Total Regularizations:</span>
           <span class="stat-value">${dept.irregularity_analysis.total_irregularities || 0}</span>
         </div>
         <div class="stat-row">
           <span class="stat-label">Approved Changes:</span>
-          <span class="stat-value">${dept.irregularity_analysis.approved_changes || 0}</span>
+          <span class="stat-value positive">${dept.irregularity_analysis.approved_changes || 0}</span>
         </div>
-        <span class="metric-badge ${badge}">Attendance: ${presentPercent}%</span>
+        <div style="display: flex; gap: 10px; margin-top: 12px;">
+          <span class="metric-badge ${badgeBefore}">Before: ${presentPercentBefore}%</span>
+          <span class="metric-badge ${badgeAfter}">After: ${presentPercentAfter}%</span>
+        </div>
       </div>
     `;
   });
@@ -746,6 +834,7 @@ function buildDepartmentComparisonHTML(departmentDataArray) {
     </div>
   `;
 }
+
 
 function buildDepartmentComparisonSummaryTableHTML(departmentDataArray) {
   if (!departmentDataArray || departmentDataArray.length === 0) {
@@ -764,31 +853,45 @@ function buildDepartmentComparisonSummaryTableHTML(departmentDataArray) {
     { label: "Holiday", key: "holiday" }
   ];
 
-  // Build header
-  let headerRow = `<tr><th>Metric</th>`;
+  // Build header with Before/After for each department
+  let headerRow1 = `<tr><th rowspan="2">Status</th>`;
+  let headerRow2 = `<tr>`;
+  
   departmentDataArray.forEach(dept => {
-    headerRow += `<th>${dept.department_name}</th>`;
+    headerRow1 += `<th colspan="2">${dept.department_name}</th>`;
+    headerRow2 += `<th>Before</th><th>After</th>`;
   });
-  headerRow += `</tr>`;
+  headerRow1 += `</tr>`;
+  headerRow2 += `</tr>`;
 
   // Build status rows
   let statusRows = "";
   statuses.forEach(status => {
     statusRows += `<tr><td>${status.label}</td>`;
     departmentDataArray.forEach(dept => {
-      const count = dept.summary_after[status.key] || 0;
+      const beforeCount = dept.summary_before[status.key] || 0;
+      const afterCount = dept.summary_after[status.key] || 0;
+      
       const cssClass = status.key === 'present' ? 'positive' : 
                        status.key === 'absent' ? 'negative' : '';
-      statusRows += `<td><span class="stat-value ${cssClass}">${count}</span></td>`;
+      
+      statusRows += `
+        <td><span class="value-before">${beforeCount}</span></td>
+        <td><span class="value-after">${afterCount}</span></td>
+      `;
     });
     statusRows += `</tr>`;
   });
 
   // Add Total row for status counts
-  statusRows += `<tr style="background-color: #f0f9ff; font-weight: bold; border-top: 2px solid #3b82f6;"><td>Total</td>`;
+  statusRows += `<tr style="background-color: #f0f9ff; font-weight: bold; border-top: 2px solid #3b82f6;"><td>Total Days</td>`;
   departmentDataArray.forEach(dept => {
-    const total = Object.values(dept.summary_after).reduce((a,b) => a+b, 0);
-    statusRows += `<td><span class="stat-value">${total}</span></td>`;
+    const totalBefore = Object.values(dept.summary_before).reduce((a,b) => a+b, 0);
+    const totalAfter = Object.values(dept.summary_after).reduce((a,b) => a+b, 0);
+    statusRows += `
+      <td><span class="stat-value">${totalBefore}</span></td>
+      <td><span class="stat-value">${totalAfter}</span></td>
+    `;
   });
   statusRows += `</tr>`;
 
@@ -798,59 +901,147 @@ function buildDepartmentComparisonSummaryTableHTML(departmentDataArray) {
   // Staff Count
   metricsRows += `<tr style="background: #f8fafc; font-weight: 600;"><td>Staff Count</td>`;
   departmentDataArray.forEach(dept => {
-    metricsRows += `<td>${dept.staff_count || 0}</td>`;
-  });
-  metricsRows += `</tr>`;
-
-  // Total Days
-  metricsRows += `<tr style="background: #f8fafc; font-weight: 600;"><td>Total Days</td>`;
-  departmentDataArray.forEach(dept => {
-    const total = Object.values(dept.summary_after).reduce((a,b) => a+b, 0);
-    metricsRows += `<td>${total}</td>`;
+    metricsRows += `<td colspan="2">${dept.staff_count || 0}</td>`;
   });
   metricsRows += `</tr>`;
 
   // Attendance %
   metricsRows += `<tr style="background: #f8fafc; font-weight: 600;"><td>Attendance %</td>`;
   departmentDataArray.forEach(dept => {
-    const total = Object.values(dept.summary_after).reduce((a,b) => a+b, 0);
-    const percent = total > 0 ? ((dept.summary_after.present / total) * 100).toFixed(1) : 0;
-    const badge = percent >= 95 ? 'excellent' : percent >= 85 ? 'good' : percent >= 70 ? 'warning' : 'poor';
-    metricsRows += `<td><span class="metric-badge ${badge}">${percent}%</span></td>`;
+    const totalBefore = Object.values(dept.summary_before).reduce((a,b) => a+b, 0);
+    const totalAfter = Object.values(dept.summary_after).reduce((a,b) => a+b, 0);
+    const percentBefore = totalBefore > 0 ? ((dept.summary_before.present / totalBefore) * 100).toFixed(1) : 0;
+    const percentAfter = totalAfter > 0 ? ((dept.summary_after.present / totalAfter) * 100).toFixed(1) : 0;
+    
+    const badgeBefore = percentBefore >= 95 ? 'excellent' : percentBefore >= 85 ? 'good' : percentBefore >= 70 ? 'warning' : 'poor';
+    const badgeAfter = percentAfter >= 95 ? 'excellent' : percentAfter >= 85 ? 'good' : percentAfter >= 70 ? 'warning' : 'poor';
+    
+    metricsRows += `
+      <td><span class="metric-badge ${badgeBefore}">${percentBefore}%</span></td>
+      <td><span class="metric-badge ${badgeAfter}">${percentAfter}%</span></td>
+    `;
   });
   metricsRows += `</tr>`;
 
-  // Total Irregularities
+  // Irregularities
   metricsRows += `<tr style="background: #fef3c7;"><td>Total Irregularities</td>`;
   departmentDataArray.forEach(dept => {
-    metricsRows += `<td>${dept.irregularity_analysis.total_irregularities || 0}</td>`;
+    metricsRows += `
+      <td><strong>${dept.irregularity_analysis.irregularities_before || 0}</strong></td>
+      <td><strong>${dept.irregularity_analysis.irregularities_after || 0}</strong></td>
+    `;
+  });
+  metricsRows += `</tr>`;
+
+  // Total Regularizations
+  metricsRows += `<tr style="background: #dbeafe;"><td>Total Regularizations</td>`;
+  departmentDataArray.forEach(dept => {
+    metricsRows += `<td colspan="2">${dept.irregularity_analysis.total_irregularities || 0}</td>`;
   });
   metricsRows += `</tr>`;
 
   // Approved Changes
   metricsRows += `<tr style="background: #dcfce7;"><td>Approved Changes</td>`;
   departmentDataArray.forEach(dept => {
-    metricsRows += `<td>${dept.irregularity_analysis.approved_changes || 0}</td>`;
+    metricsRows += `<td colspan="2">${dept.irregularity_analysis.approved_changes || 0}</td>`;
   });
   metricsRows += `</tr>`;
 
   // Rejected Changes
   metricsRows += `<tr style="background: #fee2e2;"><td>Rejected Changes</td>`;
   departmentDataArray.forEach(dept => {
-    metricsRows += `<td>${dept.irregularity_analysis.rejected_changes || 0}</td>`;
+    metricsRows += `<td colspan="2">${dept.irregularity_analysis.rejected_changes || 0}</td>`;
   });
   metricsRows += `</tr>`;
 
   return `
     <div class="table-container">
-      <h3 class="section-title">📋 Overall Comparison Summary</h3>
+      <h3 class="section-title">📋 Overall Comparison Summary (Before & After)</h3>
+      <p style="color: #64748b; margin-bottom: 15px;">
+        <strong>Note:</strong> Shows counts for each status before and after regularization.
+      </p>
       <table>
         <thead>
-          ${headerRow}
+          ${headerRow1}
+          ${headerRow2}
         </thead>
         <tbody>
           ${statusRows}
           ${metricsRows}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function buildDepartmentComparisonIrregularitiesTableHTML(departmentDataArray) {
+  if (!departmentDataArray || departmentDataArray.length === 0) {
+    return '';
+  }
+
+  // Only irregularity statuses
+  const irregularityStatuses = [
+    { label: "Absent", key: "absent" },
+    { label: "HalfDay", key: "halfday" },
+    { label: "Lesswork", key: "lesswork" },
+    { label: "Late CheckIn (Completed)", key: "late_checkin_completed" },
+    { label: "Late CheckIn (Incomplete)", key: "late_checkin_incomplete" },
+    { label: "Clock out Missing", key: "clock_out_missing" }
+  ];
+
+  // Build header with department names
+  let headerRow1 = `<tr><th rowspan="2">Status</th>`;
+  let headerRow2 = `<tr>`;
+
+  departmentDataArray.forEach(dept => {
+    headerRow1 += `<th colspan="2">${dept.department_name}</th>`;
+    headerRow2 += `<th>Before</th><th>After</th>`;
+  });
+
+  headerRow1 += `</tr>`;
+  headerRow2 += `</tr>`;
+
+  // Build status rows
+  let bodyRows = "";
+  irregularityStatuses.forEach(status => {
+    bodyRows += `<tr><td>${status.label}</td>`;
+    
+    departmentDataArray.forEach(dept => {
+      const beforeVal = dept.summary_before[status.key] || 0;
+      const afterVal = dept.summary_after[status.key] || 0;
+      
+      bodyRows += `
+        <td><span class="value-before">${beforeVal}</span></td>
+        <td><span class="value-after">${afterVal}</span></td>
+      `;
+    });
+    
+    bodyRows += `</tr>`;
+  });
+
+  // Add Total Irregularities row
+  bodyRows += `<tr style="background-color: #fef3c7; font-weight: bold; border-top: 2px solid #f59e0b;"><td>Total Irregularities</td>`;
+  departmentDataArray.forEach(dept => {
+    bodyRows += `
+      <td><span class="value-before">${dept.irregularity_analysis.irregularities_before || 0}</span></td>
+      <td><span class="value-after">${dept.irregularity_analysis.irregularities_after || 0}</span></td>
+    `;
+  });
+  bodyRows += `</tr>`;
+
+  return `
+    <div class="table-container">
+      <h3 class="section-title">⚠️ Status-wise Irregularities Breakdown</h3>
+      <p style="color: #64748b; margin-bottom: 15px;">
+        Detailed breakdown of irregular attendance statuses before and after regularization
+      </p>
+      <table>
+        <thead>
+          ${headerRow1}
+          ${headerRow2}
+        </thead>
+        <tbody>
+          ${bodyRows}
         </tbody>
       </table>
     </div>
@@ -1343,82 +1534,110 @@ function buildStaffComparisonSummaryTableHTML(staffDataArray) {
     { label: "Holiday", key: "holiday" }
   ];
 
-  // Build header
-  let headerRow = `<tr><th>Metric</th>`;
+  // Build header with Before/After for each staff
+  let headerRow1 = `<tr><th rowspan="2">Status</th>`;
+  let headerRow2 = `<tr>`;
+  
   staffDataArray.forEach(staff => {
-    headerRow += `<th>${staff.staff_name}</th>`;
+    headerRow1 += `<th colspan="2">${staff.staff_name}</th>`;
+    headerRow2 += `<th>Before</th><th>After</th>`;
   });
-  headerRow += `</tr>`;
+  headerRow1 += `</tr>`;
+  headerRow2 += `</tr>`;
 
   // Build status rows
   let statusRows = "";
   statuses.forEach(status => {
     statusRows += `<tr><td>${status.label}</td>`;
     staffDataArray.forEach(staff => {
-      const count = staff.summary_after[status.key] || 0;
+      const beforeCount = staff.summary_before[status.key] || 0;
+      const afterCount = staff.summary_after[status.key] || 0;
+      
       const cssClass = status.key === 'present' ? 'positive' : 
                        status.key === 'absent' ? 'negative' : '';
-      statusRows += `<td><span class="stat-value ${cssClass}">${count}</span></td>`;
+      
+      statusRows += `
+        <td><span class="value-before">${beforeCount}</span></td>
+        <td><span class="value-after">${afterCount}</span></td>
+      `;
     });
     statusRows += `</tr>`;
   });
 
   // Add Total row for status counts
-  statusRows += `<tr style="background-color: #f0f9ff; font-weight: bold; border-top: 2px solid #3b82f6;"><td>Total</td>`;
+  statusRows += `<tr style="background-color: #f0f9ff; font-weight: bold; border-top: 2px solid #3b82f6;"><td>Total Days</td>`;
   staffDataArray.forEach(staff => {
-    const total = Object.values(staff.summary_after).reduce((a,b) => a+b, 0);
-    statusRows += `<td><span class="stat-value">${total}</span></td>`;
+    const totalBefore = Object.values(staff.summary_before).reduce((a,b) => a+b, 0);
+    const totalAfter = Object.values(staff.summary_after).reduce((a,b) => a+b, 0);
+    statusRows += `
+      <td><span class="stat-value">${totalBefore}</span></td>
+      <td><span class="stat-value">${totalAfter}</span></td>
+    `;
   });
   statusRows += `</tr>`;
 
   // Build summary metrics rows
   let metricsRows = "";
   
-  // Total Days
-  metricsRows += `<tr style="background: #f8fafc; font-weight: 600;"><td>Total Days</td>`;
-  staffDataArray.forEach(staff => {
-    const total = Object.values(staff.summary_after).reduce((a,b) => a+b, 0);
-    metricsRows += `<td>${total}</td>`;
-  });
-  metricsRows += `</tr>`;
-
   // Attendance %
   metricsRows += `<tr style="background: #f8fafc; font-weight: 600;"><td>Attendance %</td>`;
   staffDataArray.forEach(staff => {
-    const total = Object.values(staff.summary_after).reduce((a,b) => a+b, 0);
-    const percent = total > 0 ? ((staff.summary_after.present / total) * 100).toFixed(1) : 0;
-    const badge = percent >= 95 ? 'excellent' : percent >= 85 ? 'good' : percent >= 70 ? 'warning' : 'poor';
-    metricsRows += `<td><span class="metric-badge ${badge}">${percent}%</span></td>`;
+    const totalBefore = Object.values(staff.summary_before).reduce((a,b) => a+b, 0);
+    const totalAfter = Object.values(staff.summary_after).reduce((a,b) => a+b, 0);
+    const percentBefore = totalBefore > 0 ? ((staff.summary_before.present / totalBefore) * 100).toFixed(1) : 0;
+    const percentAfter = totalAfter > 0 ? ((staff.summary_after.present / totalAfter) * 100).toFixed(1) : 0;
+    
+    const badgeBefore = percentBefore >= 95 ? 'excellent' : percentBefore >= 85 ? 'good' : percentBefore >= 70 ? 'warning' : 'poor';
+    const badgeAfter = percentAfter >= 95 ? 'excellent' : percentAfter >= 85 ? 'good' : percentAfter >= 70 ? 'warning' : 'poor';
+    
+    metricsRows += `
+      <td><span class="metric-badge ${badgeBefore}">${percentBefore}%</span></td>
+      <td><span class="metric-badge ${badgeAfter}">${percentAfter}%</span></td>
+    `;
   });
   metricsRows += `</tr>`;
 
-  // Total Irregularities
+  // Irregularities
   metricsRows += `<tr style="background: #fef3c7;"><td>Total Irregularities</td>`;
   staffDataArray.forEach(staff => {
-    metricsRows += `<td>${staff.irregularity_analysis.total_irregularities || 0}</td>`;
+    metricsRows += `
+      <td><strong>${staff.irregularity_analysis.irregularities_before || 0}</strong></td>
+      <td><strong>${staff.irregularity_analysis.irregularities_after || 0}</strong></td>
+    `;
+  });
+  metricsRows += `</tr>`;
+
+  // Total Regularizations
+  metricsRows += `<tr style="background: #dbeafe;"><td>Total Regularizations</td>`;
+  staffDataArray.forEach(staff => {
+    metricsRows += `<td colspan="2">${staff.irregularity_analysis.total_irregularities || 0}</td>`;
   });
   metricsRows += `</tr>`;
 
   // Approved Changes
   metricsRows += `<tr style="background: #dcfce7;"><td>Approved Changes</td>`;
   staffDataArray.forEach(staff => {
-    metricsRows += `<td>${staff.irregularity_analysis.approved_changes || 0}</td>`;
+    metricsRows += `<td colspan="2">${staff.irregularity_analysis.approved_changes || 0}</td>`;
   });
   metricsRows += `</tr>`;
 
   // Rejected Changes
   metricsRows += `<tr style="background: #fee2e2;"><td>Rejected Changes</td>`;
   staffDataArray.forEach(staff => {
-    metricsRows += `<td>${staff.irregularity_analysis.rejected_changes || 0}</td>`;
+    metricsRows += `<td colspan="2">${staff.irregularity_analysis.rejected_changes || 0}</td>`;
   });
   metricsRows += `</tr>`;
 
   return `
     <div class="table-container">
-      <h3 class="section-title">📋 Overall Comparison Summary</h3>
+      <h3 class="section-title">📋 Overall Comparison Summary (Before & After)</h3>
+      <p style="color: #64748b; margin-bottom: 15px;">
+        <strong>Note:</strong> Shows counts for each status before and after regularization.
+      </p>
       <table>
         <thead>
-          ${headerRow}
+          ${headerRow1}
+          ${headerRow2}
         </thead>
         <tbody>
           ${statusRows}
@@ -1429,43 +1648,148 @@ function buildStaffComparisonSummaryTableHTML(staffDataArray) {
   `;
 }
 
+function buildStaffComparisonIrregularitiesTableHTML(staffDataArray) {
+  if (!staffDataArray || staffDataArray.length === 0) {
+    return '';
+  }
+
+  // Only irregularity statuses
+  const irregularityStatuses = [
+    { label: "Absent", key: "absent" },
+    { label: "HalfDay", key: "halfday" },
+    { label: "Lesswork", key: "lesswork" },
+    { label: "Late CheckIn (Completed)", key: "late_checkin_completed" },
+    { label: "Late CheckIn (Incomplete)", key: "late_checkin_incomplete" },
+    { label: "Clock out Missing", key: "clock_out_missing" }
+  ];
+
+  // Build header with staff names
+  let headerRow1 = `<tr><th rowspan="2">Status</th>`;
+  let headerRow2 = `<tr>`;
+
+  staffDataArray.forEach(staff => {
+    headerRow1 += `<th colspan="2">${staff.staff_name}</th>`;
+    headerRow2 += `<th>Before</th><th>After</th>`;
+  });
+
+  headerRow1 += `</tr>`;
+  headerRow2 += `</tr>`;
+
+  // Build status rows
+  let bodyRows = "";
+  irregularityStatuses.forEach(status => {
+    bodyRows += `<tr><td>${status.label}</td>`;
+    
+    staffDataArray.forEach(staff => {
+      const beforeVal = staff.summary_before[status.key] || 0;
+      const afterVal = staff.summary_after[status.key] || 0;
+      
+      bodyRows += `
+        <td><span class="value-before">${beforeVal}</span></td>
+        <td><span class="value-after">${afterVal}</span></td>
+      `;
+    });
+    
+    bodyRows += `</tr>`;
+  });
+
+  // Add Total Irregularities row
+  bodyRows += `<tr style="background-color: #fef3c7; font-weight: bold; border-top: 2px solid #f59e0b;"><td>Total Irregularities</td>`;
+  staffDataArray.forEach(staff => {
+    bodyRows += `
+      <td><span class="value-before">${staff.irregularity_analysis.irregularities_before || 0}</span></td>
+      <td><span class="value-after">${staff.irregularity_analysis.irregularities_after || 0}</span></td>
+    `;
+  });
+  bodyRows += `</tr>`;
+
+  return `
+    <div class="table-container">
+      <h3 class="section-title">⚠️ Status-wise Irregularities Breakdown</h3>
+      <p style="color: #64748b; margin-bottom: 15px;">
+        Detailed breakdown of irregular attendance statuses before and after regularization
+      </p>
+      <table>
+        <thead>
+          ${headerRow1}
+          ${headerRow2}
+        </thead>
+        <tbody>
+          ${bodyRows}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
 function buildStaffComparisonHTML(staffDataArray) {
   let cardsHTML = "";
 
   staffDataArray.forEach(staff => {
-    const totalDays = Object.values(staff.summary_after).reduce((a,b) => a+b, 0);
-    const presentPercent = totalDays > 0 
-      ? ((staff.summary_after.present / totalDays) * 100).toFixed(1)
+    const totalDaysBefore = Object.values(staff.summary_before).reduce((a,b) => a+b, 0);
+    const totalDaysAfter = Object.values(staff.summary_after).reduce((a,b) => a+b, 0);
+    
+    const presentPercentBefore = totalDaysBefore > 0 
+      ? ((staff.summary_before.present / totalDaysBefore) * 100).toFixed(1)
+      : 0;
+    const presentPercentAfter = totalDaysAfter > 0 
+      ? ((staff.summary_after.present / totalDaysAfter) * 100).toFixed(1)
       : 0;
     
-    const badge = presentPercent >= 95 ? "excellent" : 
-                  presentPercent >= 85 ? "good" : 
-                  presentPercent >= 70 ? "warning" : "poor";
+    const badgeBefore = presentPercentBefore >= 95 ? "excellent" : 
+                  presentPercentBefore >= 85 ? "good" : 
+                  presentPercentBefore >= 70 ? "warning" : "poor";
+    const badgeAfter = presentPercentAfter >= 95 ? "excellent" : 
+                  presentPercentAfter >= 85 ? "good" : 
+                  presentPercentAfter >= 70 ? "warning" : "poor";
 
     cardsHTML += `
       <div class="staff-card">
         <h4>${staff.staff_name}</h4>
         <div class="stat-row">
           <span class="stat-label">Present Days:</span>
-          <span class="stat-value positive">${staff.summary_after.present || 0}</span>
+          <div class="stat-value-group">
+            <span class="before-after-badge before">Before: ${staff.summary_before.present || 0}</span>
+            <span>→</span>
+            <span class="before-after-badge after">After: ${staff.summary_after.present || 0}</span>
+          </div>
         </div>
         <div class="stat-row">
           <span class="stat-label">Absent Days:</span>
-          <span class="stat-value negative">${staff.summary_after.absent || 0}</span>
+          <div class="stat-value-group">
+            <span class="before-after-badge before">Before: ${staff.summary_before.absent || 0}</span>
+            <span>→</span>
+            <span class="before-after-badge after">After: ${staff.summary_after.absent || 0}</span>
+          </div>
         </div>
         <div class="stat-row">
           <span class="stat-label">On Leave:</span>
-          <span class="stat-value">${staff.summary_after.on_leave || 0}</span>
+          <div class="stat-value-group">
+            <span class="before-after-badge before">Before: ${staff.summary_before.on_leave || 0}</span>
+            <span>→</span>
+            <span class="before-after-badge after">After: ${staff.summary_after.on_leave || 0}</span>
+          </div>
         </div>
         <div class="stat-row">
           <span class="stat-label">Irregularities:</span>
+          <div class="stat-value-group">
+            <span class="before-after-badge before">Before: ${staff.irregularity_analysis.irregularities_before || 0}</span>
+            <span>→</span>
+            <span class="before-after-badge after">After: ${staff.irregularity_analysis.irregularities_after || 0}</span>
+          </div>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Total Regularizations:</span>
           <span class="stat-value">${staff.irregularity_analysis.total_irregularities || 0}</span>
         </div>
         <div class="stat-row">
           <span class="stat-label">Approved Changes:</span>
-          <span class="stat-value">${staff.irregularity_analysis.approved_changes || 0}</span>
+          <span class="stat-value positive">${staff.irregularity_analysis.approved_changes || 0}</span>
         </div>
-        <span class="metric-badge ${badge}">Attendance: ${presentPercent}%</span>
+        <div style="display: flex; gap: 10px; margin-top: 12px;">
+          <span class="metric-badge ${badgeBefore}">Before: ${presentPercentBefore}%</span>
+          <span class="metric-badge ${badgeAfter}">After: ${presentPercentAfter}%</span>
+        </div>
       </div>
     `;
   });
@@ -2147,6 +2471,16 @@ app.post("/departmentComparisonReport", async (req, res) => {
       holiday: 0
     };
 
+    // Helper function to count irregularities
+    const countIrregularities = (summary) => {
+      return (summary.absent || 0) + 
+             (summary.late_checkin_completed || 0) + 
+             (summary.late_checkin_incomplete || 0) + 
+             (summary.clock_out_missing || 0) + 
+             (summary.lesswork || 0) + 
+             (summary.halfday || 0);
+    };
+
     const departmentDataArray = [];
 
     // Process each department
@@ -2172,7 +2506,13 @@ app.post("/departmentComparisonReport", async (req, res) => {
         staff_count: staffList.length,
         summary_before: structuredClone(statusTemplate),
         summary_after: structuredClone(statusTemplate),
-        irregularity_analysis: { total_irregularities: 0, approved_changes: 0, rejected_changes: 0 },
+        irregularity_analysis: { 
+          total_irregularities: 0, 
+          approved_changes: 0, 
+          rejected_changes: 0,
+          irregularities_before: 0,
+          irregularities_after: 0
+        },
         cycles: []
       };
 
@@ -2255,6 +2595,10 @@ app.post("/departmentComparisonReport", async (req, res) => {
         departmentData.cycles.push(cycleData);
       }
 
+      // Calculate irregularities before and after
+      departmentData.irregularity_analysis.irregularities_before = countIrregularities(departmentData.summary_before);
+      departmentData.irregularity_analysis.irregularities_after = countIrregularities(departmentData.summary_after);
+
       departmentDataArray.push(departmentData);
     }
 
@@ -2326,6 +2670,7 @@ app.post("/departmentComparisonReport", async (req, res) => {
     <div class="section">
       ${buildDepartmentComparisonHTML(departmentDataArray)}
       ${buildDepartmentComparisonSummaryTableHTML(departmentDataArray)}
+      ${buildDepartmentComparisonIrregularitiesTableHTML(departmentDataArray)}
       ${buildDepartmentComparisonCycleWiseTableHTML(departmentDataArray)}
       
       <div class="ai-analysis">
@@ -2360,7 +2705,7 @@ app.post("/staffComparisonReport", async (req, res) => {
   console.log("➡️ COMPARISON API HIT:", new Date().toISOString());
 
   try {
-    const { staff_ids, cycles: numCycles = 6 } = req.body; // Default 6 cycles
+    const { staff_ids, cycles: numCycles = 6 } = req.body;
 
     if (!staff_ids || !Array.isArray(staff_ids) || staff_ids.length < 2) {
       return res.status(400).send("Please provide at least 2 staff IDs for comparison");
@@ -2390,6 +2735,16 @@ app.post("/staffComparisonReport", async (req, res) => {
       holiday: 0
     };
 
+    // Helper function to count irregularities
+    const countIrregularities = (summary) => {
+      return (summary.absent || 0) + 
+             (summary.late_checkin_completed || 0) + 
+             (summary.late_checkin_incomplete || 0) + 
+             (summary.clock_out_missing || 0) + 
+             (summary.lesswork || 0) + 
+             (summary.halfday || 0);
+    };
+
     const staffDataArray = [];
 
     // Process each staff member
@@ -2408,7 +2763,13 @@ app.post("/staffComparisonReport", async (req, res) => {
         staff_name,
         summary_before: structuredClone(statusTemplate),
         summary_after: structuredClone(statusTemplate),
-        irregularity_analysis: { total_irregularities: 0, approved_changes: 0, rejected_changes: 0 },
+        irregularity_analysis: { 
+          total_irregularities: 0, 
+          approved_changes: 0, 
+          rejected_changes: 0,
+          irregularities_before: 0,
+          irregularities_after: 0
+        },
         cycles: []
       };
 
@@ -2457,13 +2818,11 @@ app.post("/staffComparisonReport", async (req, res) => {
           const beforeRaw = r.prevStatusRaw;
           const afterRaw = r.newStatus;
           
-          // Enhance status with completed/incomplete for Late CheckIn only
           const beforeEnhanced = beforeRaw ? getEnhancedStatus(beforeRaw, r.total_time_seven) : null;
           const afterEnhanced = getEnhancedStatus(afterRaw, r.total_time_seven);
           
           const before = beforeEnhanced || afterEnhanced;
 
-          // Count statuses with enhanced Late CheckIn separately
           if (statusKeyMap[before]) {
             staffData.summary_before[statusKeyMap[before]]++;
             cycleData.before[statusKeyMap[before]]++;
@@ -2486,6 +2845,10 @@ app.post("/staffComparisonReport", async (req, res) => {
 
         staffData.cycles.push(cycleData);
       }
+
+      // Calculate irregularities before and after
+      staffData.irregularity_analysis.irregularities_before = countIrregularities(staffData.summary_before);
+      staffData.irregularity_analysis.irregularities_after = countIrregularities(staffData.summary_after);
 
       staffDataArray.push(staffData);
     }
@@ -2554,6 +2917,7 @@ app.post("/staffComparisonReport", async (req, res) => {
     <div class="section">
       ${buildStaffComparisonHTML(staffDataArray)}
       ${buildStaffComparisonSummaryTableHTML(staffDataArray)}
+      ${buildStaffComparisonIrregularitiesTableHTML(staffDataArray)}
       ${buildStaffComparisonCycleWiseTableHTML(staffDataArray)}
       
       <div class="ai-analysis">
@@ -2589,4 +2953,5 @@ app.listen(3000, () => {
   console.log("   - GET  /staffAttendanceAnalysisReportUpdate/:staff_id?cycles=N");
   console.log("   - GET  /departmentAttendanceReport/:department_id?cycles=N");
   console.log("   - POST /staffComparisonReport (body: {staff_ids: [], cycles: N})");
+  console.log("   - POST /departmentComparisonReport (body: {department_ids: [], cycles: N})");
 });
