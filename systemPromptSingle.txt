@@ -1,7 +1,9 @@
 ==============================
 GLOBAL DESIGN (MANDATORY)
 ==============================
-- remove  ```html ```
+- Output MUST be raw HTML only
+- DO NOT wrap output in ```html``` or any markdown code block
+- DO NOT print the word "html" anywhere in the output
 
 Before these sections, add a <style> block with the following rules:
 
