@@ -2003,7 +2003,7 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
     const afterCount = [];
 
     for (const label of labels) {
-      const key = label.toLowerCase().replace(/ /g, "_");
+      const key = label.toLowerCase().replace(/ /g, "_").replace(/[()]/g, "");  // ✅ FIXED
 
       const b = beforeRaw[key] || 0;
       const a = afterRaw[key] || 0;
@@ -2302,7 +2302,7 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
     const afterCount = [];
 
     for (const label of labels) {
-      const key = label.toLowerCase().replace(/ /g, "_");
+     const key = label.toLowerCase().replace(/ /g, "_").replace(/[()]/g, "");  // ✅ FIXED
       const b = departmentData.summary_before[key] || 0;
       const a = departmentData.summary_after[key] || 0;
 
