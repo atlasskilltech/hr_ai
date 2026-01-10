@@ -45,8 +45,7 @@ app.get("/api/staff/list", async (req, res) => {
         staff_id,
         CONCAT(staff_first_name, ' ', staff_last_name) as staff_name,
         staff_department,
-        staff_designation,
-        staff_type
+        staff_designation
       FROM dice_staff 
       WHERE staff_active = 0
       ORDER BY staff_first_name, staff_last_name
@@ -84,8 +83,7 @@ app.get("/api/departments/:department_id/staff", async (req, res) => {
       SELECT 
         staff_id,
         CONCAT(staff_first_name, ' ', staff_last_name) as staff_name,
-        staff_designation,
-        staff_type
+        staff_designation
       FROM dice_staff 
       WHERE staff_department = ? AND staff_active = 0
       ORDER BY staff_first_name, staff_last_name
@@ -134,10 +132,10 @@ function getEnhancedStatus(statusRaw, totalTime) {
 
 /* =========================================================
    UTILITY: CALCULATE LoP OMISSION
-   Academic: Absent * 1 + (Clock out Missing + Late CheckIn Incomplete + Lesswork) * 1
-   Non-Academic: Absent * 1 + (Clock out Missing + Late CheckIn Incomplete + Lesswork) * 0.17
+   is_faculty = 1 (Academic): Absent * 1 + (Clock out Missing + Late CheckIn Incomplete + Lesswork) * 1
+   is_faculty = 0 (Non-Academic): Absent * 1 + (Clock out Missing + Late CheckIn Incomplete + Lesswork) * 0.17
 ========================================================= */
-function calculateLoPOmission(summary, staffType) {
+function calculateLoPOmission(summary, isFaculty) {
   const absent = summary.absent || 0;
   const clockOutMissing = summary.clock_out_missing || 0;
   const lateCheckinIncomplete = summary.late_checkin_incomplete || 0;
@@ -145,8 +143,8 @@ function calculateLoPOmission(summary, staffType) {
   
   const irregularDays = clockOutMissing + lateCheckinIncomplete + lesswork;
   
-  // staffType: 1 = Academic, 2 = Non-Academic
-  if (staffType === 1) {
+  // isFaculty: 1 = Academic (faculty), 0 = Non-Academic (non-faculty)
+  if (isFaculty === 1) {
     // Academic: All irregularities count as full day
     return absent + irregularDays;
   } else {
@@ -731,7 +729,7 @@ function buildModernGraphHTML(chartData, canvasId = "attendanceGraph") {
   `;
 }
 
-function buildModernCycleWiseTableHTML(finalData, staffType) {
+function buildModernCycleWiseTableHTML(finalData, isFaculty) {
   const statuses = [
     { label: "Present", key: "present" },
     { label: "Absent", key: "absent" },
@@ -788,13 +786,13 @@ function buildModernCycleWiseTableHTML(finalData, staffType) {
   bodyRows += `</tr>`;
 
   // Add LoP Omission row
-  const staffTypeLabel = staffType === 1 ? 'Academic' : 'Non-Academic';
-  const lopMultiplier = staffType === 1 ? '1' : '0.17';
+  const staffTypeLabel = isFaculty === 1 ? 'Academic' : 'Non-Academic';
+  const lopMultiplier = isFaculty === 1 ? '1' : '0.17';
   
   bodyRows += `<tr class="lop-row"><td>LoP Omission (${staffTypeLabel})</td>`;
   cycles.forEach(cycle => {
-    const lopBefore = calculateLoPOmission(cycle.before, staffType);
-    const lopAfter = calculateLoPOmission(cycle.after, staffType);
+    const lopBefore = calculateLoPOmission(cycle.before, isFaculty);
+    const lopAfter = calculateLoPOmission(cycle.after, isFaculty);
     bodyRows += `
       <td><span class="lop-value">${lopBefore.toFixed(2)}</span></td>
       <td><span class="lop-value">${lopAfter.toFixed(2)}</span></td>
@@ -970,10 +968,10 @@ function buildDepartmentComparisonSummaryTableHTML(departmentDataArray) {
   // Add LoP Omission row - Note: For departments, this is an approximation based on department type majority
   statusRows += `<tr class="lop-row"><td>LoP Omission (Estimated)</td>`;
   departmentDataArray.forEach(dept => {
-    // Use department staff type if available, otherwise default to non-academic (2)
-    const deptType = dept.department_staff_type || 2;
-    const lopBefore = calculateLoPOmission(dept.summary_before, deptType);
-    const lopAfter = calculateLoPOmission(dept.summary_after, deptType);
+    // Use department is_faculty if available, otherwise default to non-academic (0)
+    const deptIsFaculty = dept.department_is_faculty !== undefined ? dept.department_is_faculty : 0;
+    const lopBefore = calculateLoPOmission(dept.summary_before, deptIsFaculty);
+    const lopAfter = calculateLoPOmission(dept.summary_after, deptIsFaculty);
     statusRows += `
       <td><span class="lop-value">${lopBefore.toFixed(2)}</span></td>
       <td><span class="lop-value">${lopAfter.toFixed(2)}</span></td>
@@ -1225,9 +1223,9 @@ function buildDepartmentComparisonCycleWiseTableHTML(departmentDataArray) {
   cycles.forEach((cycle, cycleIdx) => {
     departmentDataArray.forEach(dept => {
       const deptCycle = dept.cycles[cycleIdx];
-      const deptType = dept.department_staff_type || 2;
-      const lopBefore = calculateLoPOmission(deptCycle?.before || {}, deptType);
-      const lopAfter = calculateLoPOmission(deptCycle?.after || {}, deptType);
+      const deptIsFaculty = dept.department_is_faculty !== undefined ? dept.department_is_faculty : 0;
+      const lopBefore = calculateLoPOmission(deptCycle?.before || {}, deptIsFaculty);
+      const lopAfter = calculateLoPOmission(deptCycle?.after || {}, deptIsFaculty);
 
       bodyRows += `
         <td><span class="lop-value">${lopBefore.toFixed(2)}</span></td>
@@ -1259,7 +1257,7 @@ function buildDepartmentComparisonCycleWiseTableHTML(departmentDataArray) {
   `;
 }
 
-function buildDepartmentCycleWiseTableHTML(departmentData, departmentStaffType) {
+function buildDepartmentCycleWiseTableHTML(departmentData, departmentIsFaculty) {
   const statuses = [
     { label: "Present", key: "present" },
     { label: "Absent", key: "absent" },
@@ -1316,13 +1314,13 @@ function buildDepartmentCycleWiseTableHTML(departmentData, departmentStaffType) 
   bodyRows += `</tr>`;
 
   // Add LoP Omission row
-  const staffTypeLabel = departmentStaffType === 1 ? 'Academic' : 'Non-Academic';
-  const lopMultiplier = departmentStaffType === 1 ? '1' : '0.17';
+  const staffTypeLabel = departmentIsFaculty === 1 ? 'Academic' : 'Non-Academic';
+  const lopMultiplier = departmentIsFaculty === 1 ? '1' : '0.17';
   
   bodyRows += `<tr class="lop-row"><td>LoP Omission (${staffTypeLabel})</td>`;
   cycles.forEach(cycle => {
-    const lopBefore = calculateLoPOmission(cycle.before, departmentStaffType);
-    const lopAfter = calculateLoPOmission(cycle.after, departmentStaffType);
+    const lopBefore = calculateLoPOmission(cycle.before, departmentIsFaculty);
+    const lopAfter = calculateLoPOmission(cycle.after, departmentIsFaculty);
     bodyRows += `
       <td><span class="lop-value">${lopBefore.toFixed(2)}</span></td>
       <td><span class="lop-value">${lopAfter.toFixed(2)}</span></td>
@@ -1465,8 +1463,8 @@ function buildDepartmentStaffBeforeAfterTableHTML(staffDataArray) {
     `;
 
     // LoP Omission
-    const lopBefore = calculateLoPOmission(staff.summary_before, staff.staff_type);
-    const lopAfter = calculateLoPOmission(staff.summary_after, staff.staff_type);
+    const lopBefore = calculateLoPOmission(staff.summary_before, staff.is_faculty);
+    const lopAfter = calculateLoPOmission(staff.summary_after, staff.is_faculty);
     staffRows += `
       <td><span class="lop-value">${lopBefore.toFixed(2)}</span></td>
       <td><span class="lop-value">${lopAfter.toFixed(2)}</span></td>
@@ -1511,9 +1509,9 @@ function buildDepartmentStaffBeforeAfterTableHTML(staffDataArray) {
 
   // Calculate aggregated LoP for department
   const deptLoPBefore = staffDataArray.reduce((sum, staff) => 
-    sum + calculateLoPOmission(staff.summary_before, staff.staff_type), 0);
+    sum + calculateLoPOmission(staff.summary_before, staff.is_faculty), 0);
   const deptLoPAfter = staffDataArray.reduce((sum, staff) => 
-    sum + calculateLoPOmission(staff.summary_after, staff.staff_type), 0);
+    sum + calculateLoPOmission(staff.summary_after, staff.is_faculty), 0);
 
   summaryRow += `
     <td>${deptTotalBefore}</td>
@@ -1637,8 +1635,8 @@ function buildStaffComparisonCycleWiseTableHTML(staffDataArray) {
   cycles.forEach((cycle, cycleIdx) => {
     staffDataArray.forEach(staff => {
       const staffCycle = staff.cycles[cycleIdx];
-      const lopBefore = calculateLoPOmission(staffCycle?.before || {}, staff.staff_type);
-      const lopAfter = calculateLoPOmission(staffCycle?.after || {}, staff.staff_type);
+      const lopBefore = calculateLoPOmission(staffCycle?.before || {}, staff.is_faculty);
+      const lopAfter = calculateLoPOmission(staffCycle?.after || {}, staff.is_faculty);
 
       bodyRows += `
         <td><span class="lop-value">${lopBefore.toFixed(2)}</span></td>
@@ -1732,8 +1730,8 @@ function buildStaffComparisonSummaryTableHTML(staffDataArray) {
   // Add LoP Omission row
   statusRows += `<tr class="lop-row"><td>LoP Omission</td>`;
   staffDataArray.forEach(staff => {
-    const lopBefore = calculateLoPOmission(staff.summary_before, staff.staff_type);
-    const lopAfter = calculateLoPOmission(staff.summary_after, staff.staff_type);
+    const lopBefore = calculateLoPOmission(staff.summary_before, staff.is_faculty);
+    const lopAfter = calculateLoPOmission(staff.summary_after, staff.is_faculty);
     statusRows += `
       <td><span class="lop-value">${lopBefore.toFixed(2)}</span></td>
       <td><span class="lop-value">${lopAfter.toFixed(2)}</span></td>
@@ -1909,9 +1907,9 @@ function buildStaffComparisonHTML(staffDataArray) {
                   presentPercentAfter >= 70 ? "warning" : "poor";
 
     // Calculate LoP Omission
-    const lopBefore = calculateLoPOmission(staff.summary_before, staff.staff_type);
-    const lopAfter = calculateLoPOmission(staff.summary_after, staff.staff_type);
-    const staffTypeLabel = staff.staff_type === 1 ? 'Academic' : 'Non-Academic';
+    const lopBefore = calculateLoPOmission(staff.summary_before, staff.is_faculty);
+    const lopAfter = calculateLoPOmission(staff.summary_after, staff.is_faculty);
+    const staffTypeLabel = staff.is_faculty === 1 ? 'Academic' : 'Non-Academic';
 
     cardsHTML += `
       <div class="staff-card">
@@ -1995,7 +1993,7 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
     console.log("STEP 0️⃣ Staff ID:", staff_id, "Cycles:", numCycles);
 
     const [rows] = await db.query(
-      "SELECT staff_first_name, staff_last_name, staff_head, staff_type FROM dice_staff WHERE staff_id=?",
+      "SELECT staff_first_name, staff_last_name, staff_head FROM dice_staff WHERE staff_id=?",
       [staff_id]
     );
 
@@ -2005,8 +2003,10 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
 
     const data = rows[0];
     const staff_name = `${data.staff_first_name} ${data.staff_last_name}`;
-    const staff_type = data.staff_type; // 1 = Academic, 2 = Non-Academic
-    const staff_type_label = staff_type === 1 ? 'Academic' : 'Non-Academic';
+    
+    // Will be determined from attendance records
+    let is_faculty = 0; // Default to non-academic
+    let staff_type_label = 'Non-Academic';
 
     const [rowsM] = await db.query(
       "SELECT staff_first_name, staff_last_name FROM dice_staff WHERE staff_id=?",
@@ -2048,8 +2048,8 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
     const finalData = {
       staff_id,
       staff_name,
-      staff_type,
-      staff_type_label,
+      is_faculty,  // Will be updated from attendance records
+      staff_type_label,  // Will be updated
       staff_managaer,
       cycles: [],
       summary_before: structuredClone(statusTemplate),
@@ -2070,6 +2070,8 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
       "Clock out Missing": "clock_out_missing",
       "Holiday": "holiday"
     };
+
+    let facultyDetermined = false; // Flag to set is_faculty only once
 
     for (const cycle of cycles) {
       const [records] = await db.query(`
@@ -2102,7 +2104,8 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
             ELSE ''
           END AS prevStatusRaw,
           
-          dice_staff_attendance.total_time_seven
+          dice_staff_attendance.total_time_seven,
+          dice_staff_attendance.is_faculty
 
         FROM dice_staff_attendance
         LEFT JOIN dice_irregularity_staff
@@ -2123,6 +2126,15 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
       };
 
       for (const r of records) {
+        // Set is_faculty from first record only
+        if (!facultyDetermined && r.is_faculty !== undefined && r.is_faculty !== null) {
+          is_faculty = r.is_faculty;
+          staff_type_label = is_faculty === 1 ? 'Academic' : 'Non-Academic';
+          finalData.is_faculty = is_faculty;
+          finalData.staff_type_label = staff_type_label;
+          facultyDetermined = true;
+        }
+
         const beforeRaw = r.prevStatusRaw;
         const afterRaw = r.newStatus;
         
@@ -2185,7 +2197,7 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
     const afterCount = [];
 
     for (const label of labels) {
-      const key = label.toLowerCase().replace(/ /g, "_").replace(/[()]/g, "");  // ✅ FIXED
+      const key = label.toLowerCase().replace(/ /g, "_").replace(/[()]/g, "");
 
       const b = beforeRaw[key] || 0;
       const a = afterRaw[key] || 0;
@@ -2275,7 +2287,7 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
 
     <div class="section">
       ${buildModernGraphHTML(chartData)}
-      ${buildModernCycleWiseTableHTML(finalData, staff_type)}
+      ${buildModernCycleWiseTableHTML(finalData, is_faculty)}
       ${buildDateWiseStatusTableHTML(finalData.date_wise_status)}
       
       <div class="ai-analysis">
@@ -2342,18 +2354,16 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
       }
     }
 
-    // Get all staff in department with their types
+    // Get all staff in department
     const [staffList] = await db.query(
-      "SELECT staff_id, staff_first_name, staff_last_name, staff_type FROM dice_staff WHERE staff_department=? AND staff_active=0",
+      "SELECT staff_id, staff_first_name, staff_last_name FROM dice_staff WHERE staff_department=? AND staff_active=0",
       [department_id]
     );
 
     console.log("Staff count:", staffList.length);
 
-    // Determine predominant staff type in department
-    const academicCount = staffList.filter(s => s.staff_type === 1).length;
-    const nonAcademicCount = staffList.filter(s => s.staff_type === 2).length;
-    const department_staff_type = academicCount >= nonAcademicCount ? 1 : 2;
+    // Will determine predominant is_faculty after processing attendance records
+    let department_is_faculty = 0; // Default to non-academic
 
     const cycles = buildCycles(numCycles);
 
@@ -2396,12 +2406,13 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
     for (const staff of staffList) {
       const staff_id = staff.staff_id;
       const staff_name = `${staff.staff_first_name} ${staff.staff_last_name}`;
-      const staff_type = staff.staff_type;
+      let is_faculty = 0; // Default to non-academic
+      let facultyDetermined = false;
 
       const staffData = {
         staff_id,
         staff_name,
-        staff_type,
+        is_faculty,  // Will be updated from attendance records
         summary_before: structuredClone(statusTemplate),
         summary_after: structuredClone(statusTemplate),
         irregularity_analysis: { total_irregularities: 0, approved_changes: 0, rejected_changes: 0 }
@@ -2436,7 +2447,8 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
               WHEN 16 THEN 'Late CheckIn'
               ELSE ''
             END AS prevStatusRaw,
-            dice_staff_attendance.total_time_seven
+            dice_staff_attendance.total_time_seven,
+            dice_staff_attendance.is_faculty
           FROM dice_staff_attendance
           LEFT JOIN dice_irregularity_staff
             ON dice_irregularity_staff.dice_irregularity_staff_attendance_id = dice_staff_attendance.staff_attendance_id
@@ -2444,6 +2456,13 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
         `, [staff_id, cycle.start, cycle.end]);
 
         for (const r of records) {
+          // Set is_faculty from first record
+          if (!facultyDetermined && r.is_faculty !== undefined && r.is_faculty !== null) {
+            is_faculty = r.is_faculty;
+            staffData.is_faculty = is_faculty;
+            facultyDetermined = true;
+          }
+
           const beforeRaw = r.prevStatusRaw;
           const afterRaw = r.newStatus;
           
@@ -2482,6 +2501,13 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
       staffDataArray.push(staffData);
     }
 
+    // Determine department is_faculty based on majority
+    const academicCount = staffDataArray.filter(s => s.is_faculty === 1).length;
+    const nonAcademicCount = staffDataArray.filter(s => s.is_faculty === 0).length;
+    department_is_faculty = academicCount >= nonAcademicCount ? 1 : 0;
+    
+    console.log(`Department type: ${department_is_faculty === 1 ? 'Academic' : 'Non-Academic'} (${academicCount} academic, ${nonAcademicCount} non-academic)`);
+
     // Build chart data for department
     const labels = ["Present", "Absent", "On Leave", "HalfDay", "Lesswork",
                     "Late CheckIn (Completed)", "Late CheckIn (Incomplete)", 
@@ -2495,7 +2521,7 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
     const afterCount = [];
 
     for (const label of labels) {
-     const key = label.toLowerCase().replace(/ /g, "_").replace(/[()]/g, "");  // ✅ FIXED
+      const key = label.toLowerCase().replace(/ /g, "_").replace(/[()]/g, "");
       const b = departmentData.summary_before[key] || 0;
       const a = departmentData.summary_after[key] || 0;
 
@@ -2593,7 +2619,7 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
       </div>
 
       ${buildModernGraphHTML(chartData, "departmentGraph")}
-      ${buildDepartmentCycleWiseTableHTML(departmentData, department_staff_type)}
+      ${buildDepartmentCycleWiseTableHTML(departmentData, department_is_faculty)}
       ${buildDepartmentStaffBeforeAfterTableHTML(staffDataArray)}
       ${buildStaffComparisonHTML(staffDataArray)}
       
@@ -2687,22 +2713,20 @@ app.post("/departmentComparisonReport", async (req, res) => {
 
       const department_name = deptInfo[0].department_name;
 
-      // Get all staff in department with their types
+      // Get all staff in department
       const [staffList] = await db.query(
-        "SELECT staff_id, staff_type FROM dice_staff WHERE staff_department=? AND staff_active=0",
+        "SELECT staff_id FROM dice_staff WHERE staff_department=? AND staff_active=0",
         [department_id]
       );
 
-      // Determine predominant staff type
-      const academicCount = staffList.filter(s => s.staff_type === 1).length;
-      const nonAcademicCount = staffList.filter(s => s.staff_type === 2).length;
-      const department_staff_type = academicCount >= nonAcademicCount ? 1 : 2;
+      // Will determine predominant is_faculty after processing
+      const staffFacultyList = [];
 
       const departmentData = {
         department_id,
         department_name,
         staff_count: staffList.length,
-        department_staff_type,
+        department_is_faculty: 0,  // Will be updated
         summary_before: structuredClone(statusTemplate),
         summary_after: structuredClone(statusTemplate),
         irregularity_analysis: { 
@@ -2727,6 +2751,7 @@ app.post("/departmentComparisonReport", async (req, res) => {
         // Process all staff in department for this cycle
         for (const staff of staffList) {
           const staff_id = staff.staff_id;
+          let staffFacultyDetermined = false;
 
           const [records] = await db.query(`
             SELECT 
@@ -2754,7 +2779,8 @@ app.post("/departmentComparisonReport", async (req, res) => {
                 WHEN 16 THEN 'Late CheckIn'
                 ELSE ''
               END AS prevStatusRaw,
-              dice_staff_attendance.total_time_seven
+              dice_staff_attendance.total_time_seven,
+              dice_staff_attendance.is_faculty
             FROM dice_staff_attendance
             LEFT JOIN dice_irregularity_staff
               ON dice_irregularity_staff.dice_irregularity_staff_attendance_id = dice_staff_attendance.staff_attendance_id
@@ -2762,6 +2788,12 @@ app.post("/departmentComparisonReport", async (req, res) => {
           `, [staff_id, cycle.start, cycle.end]);
 
           for (const r of records) {
+            // Collect is_faculty from first record
+            if (!staffFacultyDetermined && r.is_faculty !== undefined && r.is_faculty !== null) {
+              staffFacultyList.push(r.is_faculty);
+              staffFacultyDetermined = true;
+            }
+
             const beforeRaw = r.prevStatusRaw;
             const afterRaw = r.newStatus;
             
@@ -2793,6 +2825,11 @@ app.post("/departmentComparisonReport", async (req, res) => {
 
         departmentData.cycles.push(cycleData);
       }
+
+      // After cycles loop, determine department type
+      const academicCount = staffFacultyList.filter(f => f === 1).length;
+      const nonAcademicCount = staffFacultyList.filter(f => f === 0).length;
+      departmentData.department_is_faculty = academicCount >= nonAcademicCount ? 1 : 0;
 
       // Calculate irregularities before and after
       departmentData.irregularity_analysis.irregularities_before = countIrregularities(departmentData.summary_before);
@@ -2949,19 +2986,20 @@ app.post("/staffComparisonReport", async (req, res) => {
     // Process each staff member
     for (const staff_id of staff_ids) {
       const [staffInfo] = await db.query(
-        "SELECT staff_first_name, staff_last_name, staff_type FROM dice_staff WHERE staff_id=?",
+        "SELECT staff_first_name, staff_last_name FROM dice_staff WHERE staff_id=?",
         [staff_id]
       );
 
       if (!staffInfo.length) continue;
 
       const staff_name = `${staffInfo[0].staff_first_name} ${staffInfo[0].staff_last_name}`;
-      const staff_type = staffInfo[0].staff_type;
+      let is_faculty = 0; // Default to non-academic
+      let facultyDetermined = false;
 
       const staffData = {
         staff_id,
         staff_name,
-        staff_type,
+        is_faculty,  // Will be updated from attendance records
         summary_before: structuredClone(statusTemplate),
         summary_after: structuredClone(statusTemplate),
         irregularity_analysis: { 
@@ -3008,7 +3046,8 @@ app.post("/staffComparisonReport", async (req, res) => {
               WHEN 16 THEN 'Late CheckIn'
               ELSE ''
             END AS prevStatusRaw,
-            dice_staff_attendance.total_time_seven
+            dice_staff_attendance.total_time_seven,
+            dice_staff_attendance.is_faculty
           FROM dice_staff_attendance
           LEFT JOIN dice_irregularity_staff
             ON dice_irregularity_staff.dice_irregularity_staff_attendance_id = dice_staff_attendance.staff_attendance_id
@@ -3016,6 +3055,13 @@ app.post("/staffComparisonReport", async (req, res) => {
         `, [staff_id, cycle.start, cycle.end]);
 
         for (const r of records) {
+          // Set is_faculty from first record
+          if (!facultyDetermined && r.is_faculty !== undefined && r.is_faculty !== null) {
+            is_faculty = r.is_faculty;
+            staffData.is_faculty = is_faculty;
+            facultyDetermined = true;
+          }
+
           const beforeRaw = r.prevStatusRaw;
           const afterRaw = r.newStatus;
           
@@ -3156,4 +3202,5 @@ app.listen(3000, () => {
   console.log("   - POST /staffComparisonReport (body: {staff_ids: [], cycles: N})");
   console.log("   - POST /departmentComparisonReport (body: {department_ids: [], cycles: N})");
   console.log("✨ LoP Omission calculations enabled for all reports");
+  console.log("✨ Using dice_staff_attendance.is_faculty (1=Academic, 0=Non-Academic)");
 });
