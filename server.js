@@ -286,6 +286,10 @@ function getModernStyles() {
         border-collapse: collapse;
         font-size: 14px;
       }
+
+      .cw-table{
+        table-layout: fixed;
+      }
       
       thead {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -465,8 +469,18 @@ function getModernStyles() {
         min-width: 80px;
       }
 
+      .table-container table .cw-head th {
+        white-space: normal;
+        word-wrap: break-word;
+      }
+
       .table-container table tbody td {
         white-space: nowrap;
+      }
+
+      .table-container table .cw-body td {
+        white-space: normal;
+        word-wrap: break-word;
       }
       
       .ai-analysis {
@@ -736,12 +750,12 @@ function buildModernCycleWiseTableHTML(finalData) {
   return `
     <div class="table-container">
       <h3 class="section-title">📅 Cycle-wise Attendance Comparison</h3>
-      <table>
-        <thead>
+      <table class="cw-table">
+        <thead class="cw-head">
           ${headerRow1}
           ${headerRow2}
         </thead>
-        <tbody>
+        <tbody class="cw-body">
           ${bodyRows}
         </tbody>
       </table>
@@ -1215,12 +1229,12 @@ function buildDepartmentCycleWiseTableHTML(departmentData) {
   return `
     <div class="table-container">
       <h3 class="section-title">📅 Department Cycle-wise Summary</h3>
-      <table>
-        <thead>
+      <table class="cw-table">
+        <thead class="cw-head">
           ${headerRow1}
           ${headerRow2}
         </thead>
-        <tbody>
+        <tbody class="cw-body">
           ${bodyRows}
         </tbody>
       </table>
