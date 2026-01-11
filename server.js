@@ -803,9 +803,9 @@ function buildModernCycleWiseTableHTML(finalData, isFaculty) {
   return `
     <div class="table-container">
       <h3 class="section-title">📅 Cycle-wise Attendance Comparison</h3>
-      <p style="color: #64748b; margin-bottom: 15px; font-size: 13px;">
-        <strong>LoP Calculation:</strong> ${staffTypeLabel} staff - Absent × 1 + (Clock out Missing + Late CheckIn Incomplete + Lesswork) × ${lopMultiplier}
-      </p>
+      // <p style="color: #64748b; margin-bottom: 15px; font-size: 13px;">
+      //   <strong>LoP Calculation:</strong> ${staffTypeLabel} staff - Absent × 1 + (Clock out Missing + Late CheckIn Incomplete + Lesswork) × ${lopMultiplier}
+      // </p>
       <table class="cw-table">
         <thead class="cw-head">
           ${headerRow1}
@@ -1042,7 +1042,7 @@ function buildDepartmentComparisonSummaryTableHTML(departmentDataArray) {
     <div class="table-container">
       <h3 class="section-title">📋 Overall Comparison Summary (Before & After)</h3>
       <p style="color: #64748b; margin-bottom: 15px;">
-        <strong>Note:</strong> Shows counts for each status before and after regularization. LoP values are estimated based on department type.
+        <strong>Note:</strong> Shows counts for each status before and after regularization.
       </p>
       <table>
         <thead>
@@ -1331,9 +1331,9 @@ function buildDepartmentCycleWiseTableHTML(departmentData, departmentIsFaculty) 
   return `
     <div class="table-container">
       <h3 class="section-title">📅 Department Cycle-wise Summary</h3>
-      <p style="color: #64748b; margin-bottom: 15px; font-size: 13px;">
-        <strong>LoP Calculation:</strong> ${staffTypeLabel} staff - Absent × 1 + (Clock out Missing + Late CheckIn Incomplete + Lesswork) × ${lopMultiplier}
-      </p>
+      // <p style="color: #64748b; margin-bottom: 15px; font-size: 13px;">
+      //   <strong>LoP Calculation:</strong> ${staffTypeLabel} staff - Absent × 1 + (Clock out Missing + Late CheckIn Incomplete + Lesswork) × ${lopMultiplier}
+      // </p>
       <table class="cw-table">
         <thead class="cw-head">
           ${headerRow1}
@@ -1650,7 +1650,7 @@ function buildStaffComparisonCycleWiseTableHTML(staffDataArray) {
     <div class="table-container">
       <h3 class="section-title">📊 Cycle-wise Staff Comparison</h3>
       <p style="color: #64748b; margin-bottom: 15px;">
-        Detailed attendance breakdown for each staff member across all cycles. LoP calculated based on individual staff type.
+        Detailed attendance breakdown for each staff member across all cycles.
       </p>
       <div style="overflow-x: auto;">
         <table>
@@ -1795,7 +1795,7 @@ function buildStaffComparisonSummaryTableHTML(staffDataArray) {
     <div class="table-container">
       <h3 class="section-title">📋 Overall Comparison Summary (Before & After)</h3>
       <p style="color: #64748b; margin-bottom: 15px;">
-        <strong>Note:</strong> Shows counts for each status before and after regularization. LoP calculated based on individual staff type.
+        <strong>Note:</strong> Shows counts for each status before and after regularization.
       </p>
       <table>
         <thead>
