@@ -1039,7 +1039,7 @@ function buildDepartmentComparisonSummaryTableHTML(departmentDataArray) {
     <div class="table-container">
       <h3 class="section-title">📋 Overall Comparison Summary (Before & After)</h3>
       <p style="color: #64748b; margin-bottom: 15px;">
-        <strong>Note:</strong> Shows counts for each status before and after regularization.
+        <strong>Note:</strong> Shows counts for each status before and after regularization. LoP values are estimated based on department type.
       </p>
       <table>
         <thead>
@@ -1789,7 +1789,7 @@ function buildStaffComparisonSummaryTableHTML(staffDataArray) {
     <div class="table-container">
       <h3 class="section-title">📋 Overall Comparison Summary (Before & After)</h3>
       <p style="color: #64748b; margin-bottom: 15px;">
-        <strong>Note:</strong> Shows counts for each status before and after regularization.
+        <strong>Note:</strong> Shows counts for each status before and after regularization. LoP calculated based on individual staff type.
       </p>
       <table>
         <thead>
