@@ -1644,7 +1644,7 @@ function buildStaffComparisonCycleWiseTableHTML(staffDataArray) {
     <div class="table-container">
       <h3 class="section-title">📊 Cycle-wise Staff Comparison</h3>
       <p style="color: #64748b; margin-bottom: 15px;">
-        Detailed attendance breakdown for each staff member across all cycles.
+        Detailed attendance breakdown for each staff member across all cycles. LoP calculated based on individual staff type.
       </p>
       <div style="overflow-x: auto;">
         <table>
