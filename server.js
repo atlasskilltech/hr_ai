@@ -803,9 +803,6 @@ function buildModernCycleWiseTableHTML(finalData, isFaculty) {
   return `
     <div class="table-container">
       <h3 class="section-title">📅 Cycle-wise Attendance Comparison</h3>
-      // <p style="color: #64748b; margin-bottom: 15px; font-size: 13px;">
-      //   <strong>LoP Calculation:</strong> ${staffTypeLabel} staff - Absent × 1 + (Clock out Missing + Late CheckIn Incomplete + Lesswork) × ${lopMultiplier}
-      // </p>
       <table class="cw-table">
         <thead class="cw-head">
           ${headerRow1}
@@ -1331,9 +1328,6 @@ function buildDepartmentCycleWiseTableHTML(departmentData, departmentIsFaculty) 
   return `
     <div class="table-container">
       <h3 class="section-title">📅 Department Cycle-wise Summary</h3>
-      // <p style="color: #64748b; margin-bottom: 15px; font-size: 13px;">
-      //   <strong>LoP Calculation:</strong> ${staffTypeLabel} staff - Absent × 1 + (Clock out Missing + Late CheckIn Incomplete + Lesswork) × ${lopMultiplier}
-      // </p>
       <table class="cw-table">
         <thead class="cw-head">
           ${headerRow1}
