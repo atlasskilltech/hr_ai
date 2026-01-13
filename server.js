@@ -1304,7 +1304,7 @@ function buildDepartmentStaffBeforeAfterTableHTML(staffDataArray) {
   statuses.forEach(status => {
     headerRow += `<th colspan="2">${status.label}</th>`;
   });
-  headerRow += `<th colspan="2">Total Days</th><th colspan="2">Attendance %</th><th>Irregularities</th></tr>`;
+  headerRow += `<th colspan="2">Attendance %</th><th>Irregularities Applied</th></tr>`;
 
   let subHeaderRow = `<tr><th></th>`;
   statuses.forEach(() => {
@@ -1327,10 +1327,7 @@ function buildDepartmentStaffBeforeAfterTableHTML(staffDataArray) {
       `;
     });
 
-    // Total days
-    const totalBefore = Object.values(staff.summary_before).reduce((a,b) => a+b, 0);
-    const totalAfter = Object.values(staff.summary_after).reduce((a,b) => a+b, 0);
-    staffRows += `<td>${totalBefore}</td><td>${totalAfter}</td>`;
+    
 
     // Attendance percentage
     const percentBefore = totalBefore > 0 ? ((staff.summary_before.present / totalBefore) * 100).toFixed(1) : 0;
