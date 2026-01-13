@@ -135,13 +135,16 @@ function getEnhancedStatus(statusRaw, totalTime) {
 ========================================================= */
 function calculateAttendancePercent(summary) {
   const totalDays = Object.values(summary).reduce((a, b) => a + b, 0);
-  const workingDays = totalDays - (summary.holiday || 0);
-  
+
+  const holidays = summary.holiday || 0;
+  const nonWorking = summary.non_working || 0;
+
+  const workingDays = totalDays - holidays - nonWorking;
+
   if (workingDays <= 0) return 0;
-  
+
   return ((summary.present / workingDays) * 100).toFixed(1);
 }
-
 /* =========================================================
    UTILITY: BUILD CYCLES DYNAMICALLY
 ========================================================= */
@@ -699,7 +702,7 @@ function buildModernCycleWiseTableHTML(finalData) {
     { label: "Late CheckIn (Completed)", key: "late_checkin_completed" },
     { label: "Late CheckIn (Incomplete)", key: "late_checkin_incomplete" },
     { label: "Clock out Missing", key: "clock_out_missing" },
-    { label: "Holiday", key: "holiday" }
+    { label: "Holiday", key: "holiday" },{ label: "Non Working", key: "non_working" } // ✅ ADD
   ];
 
   const cycles = finalData.cycles;
@@ -855,7 +858,7 @@ function buildDepartmentComparisonSummaryTableHTML(departmentDataArray) {
     { label: "Late CheckIn (Completed)", key: "late_checkin_completed" },
     { label: "Late CheckIn (Incomplete)", key: "late_checkin_incomplete" },
     { label: "Clock out Missing", key: "clock_out_missing" },
-    { label: "Holiday", key: "holiday" }
+    { label: "Holiday", key: "holiday" },{ label: "Non Working", key: "non_working" } // ✅ ADD
   ];
 
   // Build header with Before/After for each department
@@ -1071,7 +1074,7 @@ function buildDepartmentComparisonCycleWiseTableHTML(departmentDataArray) {
     { label: "Late CheckIn (Completed)", key: "late_checkin_completed" },
     { label: "Late CheckIn (Incomplete)", key: "late_checkin_incomplete" },
     { label: "Clock out Missing", key: "clock_out_missing" },
-    { label: "Holiday", key: "holiday" }
+    { label: "Holiday", key: "holiday" },{ label: "Non Working", key: "non_working" } // ✅ ADD
   ];
 
   // Build consolidated header
@@ -1169,7 +1172,7 @@ function buildDepartmentCycleWiseTableHTML(departmentData) {
     { label: "Late CheckIn (Completed)", key: "late_checkin_completed" },
     { label: "Late CheckIn (Incomplete)", key: "late_checkin_incomplete" },
     { label: "Clock out Missing", key: "clock_out_missing" },
-    { label: "Holiday", key: "holiday" }
+    { label: "Holiday", key: "holiday" },{ label: "Non Working", key: "non_working" } // ✅ ADD
   ];
 
   const cycles = departmentData.cycles;
@@ -1299,7 +1302,7 @@ function buildDepartmentStaffBeforeAfterTableHTML(staffDataArray) {
     { label: "Late CheckIn (Completed)", key: "late_checkin_completed" },
     { label: "Late CheckIn (Incomplete)", key: "late_checkin_incomplete" },
     { label: "Clock out Missing", key: "clock_out_missing" },
-    { label: "Holiday", key: "holiday" }
+    { label: "Holiday", key: "holiday" },{ label: "Non Working", key: "non_working" } // ✅ ADD
   ];
 
   // Build header
@@ -1440,7 +1443,7 @@ function buildStaffComparisonCycleWiseTableHTML(staffDataArray) {
     { label: "Late CheckIn (Completed)", key: "late_checkin_completed" },
     { label: "Late CheckIn (Incomplete)", key: "late_checkin_incomplete" },
     { label: "Clock out Missing", key: "clock_out_missing" },
-    { label: "Holiday", key: "holiday" }
+    { label: "Holiday", key: "holiday" },{ label: "Non Working", key: "non_working" } // ✅ ADD
   ];
 
   // Build consolidated header - Cycle 1 (All Staff) | Cycle 2 (All Staff) | etc.
@@ -1542,7 +1545,7 @@ function buildStaffComparisonSummaryTableHTML(staffDataArray) {
     { label: "Late CheckIn (Completed)", key: "late_checkin_completed" },
     { label: "Late CheckIn (Incomplete)", key: "late_checkin_incomplete" },
     { label: "Clock out Missing", key: "clock_out_missing" },
-    { label: "Holiday", key: "holiday" }
+    { label: "Holiday", key: "holiday" },{ label: "Non Working", key: "non_working" } // ✅ ADD
   ];
 
   // Build header with Before/After for each staff
@@ -1845,7 +1848,7 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
       lesswork: 0,
       late_checkin_completed: 0, late_checkin_incomplete: 0,
       clock_out_missing: 0,
-      holiday: 0
+      holiday: 0,non_working: 0   // ✅ ADD
     };
 
     const unchangedTemplate = {
@@ -1888,7 +1891,8 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
       "Late CheckIn (Completed)": "late_checkin_completed",
       "Late CheckIn (Incomplete)": "late_checkin_incomplete",
       "Clock out Missing": "clock_out_missing",
-      "Holiday": "holiday"
+      "Holiday": "holiday",
+	  "Non Working": "non_working"   // ✅ ADD
     };
 
     for (const cycle of cycles) {
@@ -1905,6 +1909,7 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
             WHEN 10 THEN 'Very Less'
             WHEN 12 THEN 'On Leave'
             WHEN 13 THEN 'Holiday'
+			WHEN 15 THEN 'Non Working'   -- ✅ ADD
             WHEN 16 THEN 'Late CheckIn'
             ELSE ''
           END AS newStatus,
@@ -1918,6 +1923,7 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
             WHEN 10 THEN 'Very Less'
             WHEN 12 THEN 'On Leave'
             WHEN 13 THEN 'Holiday'
+			WHEN 15 THEN 'Non Working'   -- ✅ ADD
             WHEN 16 THEN 'Late CheckIn'
             ELSE ''
           END AS prevStatusRaw,
@@ -1990,7 +1996,7 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
       "Present", "Absent", "On Leave", "HalfDay",
       "Lesswork",
       "Late CheckIn (Completed)", "Late CheckIn (Incomplete)",
-      "Clock out Missing", "Holiday"
+      "Clock out Missing", "Holiday","Non Working"   // ✅ ADD
     ];
 
     const beforeRaw = finalData.summary_before;
@@ -2177,7 +2183,8 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
       "Late CheckIn (Completed)": "late_checkin_completed",
       "Late CheckIn (Incomplete)": "late_checkin_incomplete",
       "Clock out Missing": "clock_out_missing",
-      "Holiday": "holiday"
+      "Holiday": "holiday",
+	  "Non Working": "non_working"   // ✅ ADD
     };
 
     const statusTemplate = {
@@ -2185,7 +2192,7 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
       lesswork: 0,
       late_checkin_completed: 0, late_checkin_incomplete: 0,
       clock_out_missing: 0,
-      holiday: 0
+      holiday: 0,non_working: 0   // ✅ ADD
     };
 
     // Aggregate department data
@@ -2230,6 +2237,7 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
               WHEN 10 THEN 'Very Less'
               WHEN 12 THEN 'On Leave'
               WHEN 13 THEN 'Holiday'
+			  WHEN 15 THEN 'Non Working'   -- ✅ ADD
               WHEN 16 THEN 'Late CheckIn'
               ELSE ''
             END AS newStatus,
@@ -2242,6 +2250,7 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
               WHEN 10 THEN 'Very Less'
               WHEN 12 THEN 'On Leave'
               WHEN 13 THEN 'Holiday'
+			  WHEN 15 THEN 'Non Working'   -- ✅ ADD
               WHEN 16 THEN 'Late CheckIn'
               ELSE ''
             END AS prevStatusRaw,
@@ -2294,7 +2303,7 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
     // Build chart data for department
     const labels = ["Present", "Absent", "On Leave", "HalfDay", "Lesswork",
                     "Late CheckIn (Completed)", "Late CheckIn (Incomplete)", 
-                    "Clock out Missing", "Holiday"];
+                    "Clock out Missing", "Holiday","Non Working"   // ✅ ADD];
     const totalBefore = Object.values(departmentData.summary_before).reduce((a, b) => a + b, 0);
     const totalAfter = Object.values(departmentData.summary_after).reduce((a, b) => a + b, 0);
 
@@ -2462,7 +2471,8 @@ app.post("/departmentComparisonReport", async (req, res) => {
       "Late CheckIn (Completed)": "late_checkin_completed",
       "Late CheckIn (Incomplete)": "late_checkin_incomplete",
       "Clock out Missing": "clock_out_missing",
-      "Holiday": "holiday"
+      "Holiday": "holiday",
+	  "Non Working": "non_working"   // ✅ ADD
     };
 
     const statusTemplate = {
@@ -2470,7 +2480,7 @@ app.post("/departmentComparisonReport", async (req, res) => {
       lesswork: 0,
       late_checkin_completed: 0, late_checkin_incomplete: 0,
       clock_out_missing: 0,
-      holiday: 0
+      holiday: 0,non_working: 0   // ✅ ADD
     };
 
     // Helper function to count irregularities
@@ -2542,6 +2552,7 @@ app.post("/departmentComparisonReport", async (req, res) => {
                 WHEN 10 THEN 'Very Less'
                 WHEN 12 THEN 'On Leave'
                 WHEN 13 THEN 'Holiday'
+				WHEN 15 THEN 'Non Working'   -- ✅ ADD
                 WHEN 16 THEN 'Late CheckIn'
                 ELSE ''
               END AS newStatus,
@@ -2554,6 +2565,7 @@ app.post("/departmentComparisonReport", async (req, res) => {
                 WHEN 10 THEN 'Very Less'
                 WHEN 12 THEN 'On Leave'
                 WHEN 13 THEN 'Holiday'
+				WHEN 15 THEN 'Non Working'   -- ✅ ADD
                 WHEN 16 THEN 'Late CheckIn'
                 ELSE ''
               END AS prevStatusRaw,
@@ -2726,7 +2738,8 @@ app.post("/staffComparisonReport", async (req, res) => {
       "Late CheckIn (Completed)": "late_checkin_completed",
       "Late CheckIn (Incomplete)": "late_checkin_incomplete",
       "Clock out Missing": "clock_out_missing",
-      "Holiday": "holiday"
+      "Holiday": "holiday",
+	  "Non Working": "non_working"   // ✅ ADD
     };
 
     const statusTemplate = {
@@ -2734,7 +2747,8 @@ app.post("/staffComparisonReport", async (req, res) => {
       lesswork: 0,
       late_checkin_completed: 0, late_checkin_incomplete: 0,
       clock_out_missing: 0,
-      holiday: 0
+      holiday: 0,
+	  non_working: 0   // ✅ ADD
     };
 
     // Helper function to count irregularities
@@ -2794,6 +2808,7 @@ app.post("/staffComparisonReport", async (req, res) => {
               WHEN 10 THEN 'Very Less'
               WHEN 12 THEN 'On Leave'
               WHEN 13 THEN 'Holiday'
+			  WHEN 15 THEN 'Non Working'   -- ✅ ADD
               WHEN 16 THEN 'Late CheckIn'
               ELSE ''
             END AS newStatus,
@@ -2806,6 +2821,7 @@ app.post("/staffComparisonReport", async (req, res) => {
               WHEN 10 THEN 'Very Less'
               WHEN 12 THEN 'On Leave'
               WHEN 13 THEN 'Holiday'
+			  WHEN 15 THEN 'Non Working'   -- ✅ ADD
               WHEN 16 THEN 'Late CheckIn'
               ELSE ''
             END AS prevStatusRaw,
