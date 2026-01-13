@@ -131,6 +131,18 @@ function getEnhancedStatus(statusRaw, totalTime) {
 }
 
 /* =========================================================
+   UTILITY: CALCULATE ATTENDANCE PERCENTAGE (EXCLUDING HOLIDAYS)
+========================================================= */
+function calculateAttendancePercent(summary) {
+  const totalDays = Object.values(summary).reduce((a, b) => a + b, 0);
+  const workingDays = totalDays - (summary.holiday || 0);
+  
+  if (workingDays <= 0) return 0;
+  
+  return ((summary.present / workingDays) * 100).toFixed(1);
+}
+
+/* =========================================================
    UTILITY: BUILD CYCLES DYNAMICALLY
 ========================================================= */
 function buildCycles(numCycles = 6) {
@@ -753,15 +765,8 @@ function buildDepartmentComparisonHTML(departmentDataArray) {
   let cardsHTML = "";
 
   departmentDataArray.forEach(dept => {
-    const totalDaysBefore = Object.values(dept.summary_before).reduce((a,b) => a+b, 0);
-    const totalDaysAfter = Object.values(dept.summary_after).reduce((a,b) => a+b, 0);
-    
-    const presentPercentBefore = totalDaysBefore > 0 
-      ? ((dept.summary_before.present / totalDaysBefore) * 100).toFixed(1)
-      : 0;
-    const presentPercentAfter = totalDaysAfter > 0 
-      ? ((dept.summary_after.present / totalDaysAfter) * 100).toFixed(1)
-      : 0;
+    const presentPercentBefore = calculateAttendancePercent(dept.summary_before);
+    const presentPercentAfter = calculateAttendancePercent(dept.summary_after);
     
     const badgeBefore = presentPercentBefore >= 95 ? "excellent" : 
                   presentPercentBefore >= 85 ? "good" : 
@@ -905,13 +910,11 @@ function buildDepartmentComparisonSummaryTableHTML(departmentDataArray) {
   });
   metricsRows += `</tr>`;
 
-  // Attendance %
-  metricsRows += `<tr style="background: #f8fafc; font-weight: 600;"><td>Attendance %</td>`;
+  // Attendance % (excluding holidays)
+  metricsRows += `<tr style="background: #f8fafc; font-weight: 600;"><td>Attendance % (excl. holidays)</td>`;
   departmentDataArray.forEach(dept => {
-    const totalBefore = Object.values(dept.summary_before).reduce((a,b) => a+b, 0);
-    const totalAfter = Object.values(dept.summary_after).reduce((a,b) => a+b, 0);
-    const percentBefore = totalBefore > 0 ? ((dept.summary_before.present / totalBefore) * 100).toFixed(1) : 0;
-    const percentAfter = totalAfter > 0 ? ((dept.summary_after.present / totalAfter) * 100).toFixed(1) : 0;
+    const percentBefore = calculateAttendancePercent(dept.summary_before);
+    const percentAfter = calculateAttendancePercent(dept.summary_after);
     
     const badgeBefore = percentBefore >= 95 ? 'excellent' : percentBefore >= 85 ? 'good' : percentBefore >= 70 ? 'warning' : 'poor';
     const badgeAfter = percentAfter >= 95 ? 'excellent' : percentAfter >= 85 ? 'good' : percentAfter >= 70 ? 'warning' : 'poor';
@@ -958,7 +961,7 @@ function buildDepartmentComparisonSummaryTableHTML(departmentDataArray) {
     <div class="table-container">
       <h3 class="section-title">📋 Overall Comparison Summary (Before & After)</h3>
       <p style="color: #64748b; margin-bottom: 15px;">
-        <strong>Note:</strong> Shows counts for each status before and after regularization.
+        <strong>Note:</strong> Shows counts for each status before and after regularization. Attendance % calculated excluding holidays.
       </p>
       <table>
         <thead>
@@ -1304,7 +1307,7 @@ function buildDepartmentStaffBeforeAfterTableHTML(staffDataArray) {
   statuses.forEach(status => {
     headerRow += `<th colspan="2">${status.label}</th>`;
   });
-  headerRow += `<th colspan="2">Total Days</th><th colspan="2">Attendance %</th><th>Irregularities Applied</th></tr>`;
+  headerRow += `<th colspan="2">Total Days</th><th colspan="2">Attendance % (excl. holidays)</th><th>Irregularities Applied</th></tr>`;
 
   let subHeaderRow = `<tr><th></th>`;
   statuses.forEach(() => {
@@ -1332,9 +1335,9 @@ function buildDepartmentStaffBeforeAfterTableHTML(staffDataArray) {
     const totalAfter = Object.values(staff.summary_after).reduce((a,b) => a+b, 0);
     staffRows += `<td>${totalBefore}</td><td>${totalAfter}</td>`;
 
-    // Attendance percentage
-    const percentBefore = totalBefore > 0 ? ((staff.summary_before.present / totalBefore) * 100).toFixed(1) : 0;
-    const percentAfter = totalAfter > 0 ? ((staff.summary_after.present / totalAfter) * 100).toFixed(1) : 0;
+    // Attendance percentage (excluding holidays)
+    const percentBefore = calculateAttendancePercent(staff.summary_before);
+    const percentAfter = calculateAttendancePercent(staff.summary_after);
     const badgeBefore = percentBefore >= 95 ? 'excellent' : percentBefore >= 85 ? 'good' : percentBefore >= 70 ? 'warning' : 'poor';
     const badgeAfter = percentAfter >= 95 ? 'excellent' : percentAfter >= 85 ? 'good' : percentAfter >= 70 ? 'warning' : 'poor';
     
@@ -1366,11 +1369,19 @@ function buildDepartmentStaffBeforeAfterTableHTML(staffDataArray) {
     sum + Object.values(staff.summary_before).reduce((a,b) => a+b, 0), 0);
   const deptTotalAfter = staffDataArray.reduce((sum, staff) => 
     sum + Object.values(staff.summary_after).reduce((a,b) => a+b, 0), 0);
-  const deptPresentBefore = staffDataArray.reduce((sum, staff) => sum + (staff.summary_before.present || 0), 0);
-  const deptPresentAfter = staffDataArray.reduce((sum, staff) => sum + (staff.summary_after.present || 0), 0);
   
-  const deptPercentBefore = deptTotalBefore > 0 ? ((deptPresentBefore / deptTotalBefore) * 100).toFixed(1) : 0;
-  const deptPercentAfter = deptTotalAfter > 0 ? ((deptPresentAfter / deptTotalAfter) * 100).toFixed(1) : 0;
+  // Calculate department totals for percentages
+  const deptSummaryBefore = {};
+  const deptSummaryAfter = {};
+  staffDataArray.forEach(staff => {
+    Object.keys(staff.summary_before).forEach(key => {
+      deptSummaryBefore[key] = (deptSummaryBefore[key] || 0) + (staff.summary_before[key] || 0);
+      deptSummaryAfter[key] = (deptSummaryAfter[key] || 0) + (staff.summary_after[key] || 0);
+    });
+  });
+  
+  const deptPercentBefore = calculateAttendancePercent(deptSummaryBefore);
+  const deptPercentAfter = calculateAttendancePercent(deptSummaryAfter);
   
   const deptBadgeBefore = deptPercentBefore >= 95 ? 'excellent' : deptPercentBefore >= 85 ? 'good' : 
                           deptPercentBefore >= 70 ? 'warning' : 'poor';
@@ -1392,7 +1403,7 @@ function buildDepartmentStaffBeforeAfterTableHTML(staffDataArray) {
     <div class="table-container">
       <h3 class="section-title">📊 Staff-wise Before & After Analysis</h3>
       <p style="color: #64748b; margin-bottom: 20px;">
-        Detailed attendance breakdown for each staff member showing before and after regularization
+        Detailed attendance breakdown for each staff member showing before and after regularization. Attendance % calculated excluding holidays.
       </p>
       <table>
         <thead>
@@ -1579,13 +1590,11 @@ function buildStaffComparisonSummaryTableHTML(staffDataArray) {
   // Build summary metrics rows
   let metricsRows = "";
   
-  // Attendance %
-  metricsRows += `<tr style="background: #f8fafc; font-weight: 600;"><td>Attendance %</td>`;
+  // Attendance % (excluding holidays)
+  metricsRows += `<tr style="background: #f8fafc; font-weight: 600;"><td>Attendance % (excl. holidays)</td>`;
   staffDataArray.forEach(staff => {
-    const totalBefore = Object.values(staff.summary_before).reduce((a,b) => a+b, 0);
-    const totalAfter = Object.values(staff.summary_after).reduce((a,b) => a+b, 0);
-    const percentBefore = totalBefore > 0 ? ((staff.summary_before.present / totalBefore) * 100).toFixed(1) : 0;
-    const percentAfter = totalAfter > 0 ? ((staff.summary_after.present / totalAfter) * 100).toFixed(1) : 0;
+    const percentBefore = calculateAttendancePercent(staff.summary_before);
+    const percentAfter = calculateAttendancePercent(staff.summary_after);
     
     const badgeBefore = percentBefore >= 95 ? 'excellent' : percentBefore >= 85 ? 'good' : percentBefore >= 70 ? 'warning' : 'poor';
     const badgeAfter = percentAfter >= 95 ? 'excellent' : percentAfter >= 85 ? 'good' : percentAfter >= 70 ? 'warning' : 'poor';
@@ -1632,7 +1641,7 @@ function buildStaffComparisonSummaryTableHTML(staffDataArray) {
     <div class="table-container">
       <h3 class="section-title">📋 Overall Comparison Summary (Before & After)</h3>
       <p style="color: #64748b; margin-bottom: 15px;">
-        <strong>Note:</strong> Shows counts for each status before and after regularization.
+        <strong>Note:</strong> Shows counts for each status before and after regularization. Attendance % calculated excluding holidays.
       </p>
       <table>
         <thead>
@@ -1726,15 +1735,8 @@ function buildStaffComparisonHTML(staffDataArray) {
   let cardsHTML = "";
 
   staffDataArray.forEach(staff => {
-    const totalDaysBefore = Object.values(staff.summary_before).reduce((a,b) => a+b, 0);
-    const totalDaysAfter = Object.values(staff.summary_after).reduce((a,b) => a+b, 0);
-    
-    const presentPercentBefore = totalDaysBefore > 0 
-      ? ((staff.summary_before.present / totalDaysBefore) * 100).toFixed(1)
-      : 0;
-    const presentPercentAfter = totalDaysAfter > 0 
-      ? ((staff.summary_after.present / totalDaysAfter) * 100).toFixed(1)
-      : 0;
+    const presentPercentBefore = calculateAttendancePercent(staff.summary_before);
+    const presentPercentAfter = calculateAttendancePercent(staff.summary_after);
     
     const badgeBefore = presentPercentBefore >= 95 ? "excellent" : 
                   presentPercentBefore >= 85 ? "good" : 
