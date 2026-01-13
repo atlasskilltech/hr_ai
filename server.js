@@ -2135,13 +2135,16 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
 /* =========================================================
    DEPARTMENT REPORT ROUTE - With Dynamic Cycles
 ========================================================= */
+/* =========================================================
+   DEPARTMENT REPORT ROUTE - With Dynamic Cycles (FIXED)
+========================================================= */
 app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
   console.log("--------------------------------------------------");
   console.log("➡️ DEPARTMENT API HIT:", new Date().toISOString());
 
   try {
     const department_id = req.params.department_id;
-    const numCycles = parseInt(req.query.cycles) || 6; // Default 6 cycles
+    const numCycles = parseInt(req.query.cycles) || 6;
     console.log("Department ID:", department_id, "Cycles:", numCycles);
 
     const [deptInfo] = await db.query(
@@ -2167,7 +2170,6 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
       }
     }
 
-    // Get all staff in department
     const [staffList] = await db.query(
       "SELECT staff_id, staff_first_name, staff_last_name FROM dice_staff WHERE staff_department=? AND staff_active=0",
       [department_id]
@@ -2187,7 +2189,7 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
       "Late CheckIn (Incomplete)": "late_checkin_incomplete",
       "Clock out Missing": "clock_out_missing",
       "Holiday": "holiday",
-	  "Non Working": "non_working"
+      "Non Working": "non_working"
     };
 
     const statusTemplate = {
@@ -2195,10 +2197,19 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
       lesswork: 0,
       late_checkin_completed: 0, late_checkin_incomplete: 0,
       clock_out_missing: 0,
-      holiday: 0,non_working: 0 
+      holiday: 0, non_working: 0 
     };
 
-    // Aggregate department data
+    // ✅ ADD: Helper function to count irregularities
+    const countIrregularities = (summary) => {
+      return (summary.absent || 0) + 
+             (summary.late_checkin_completed || 0) + 
+             (summary.late_checkin_incomplete || 0) + 
+             (summary.clock_out_missing || 0) + 
+             (summary.lesswork || 0) + 
+             (summary.halfday || 0);
+    };
+
     const departmentData = {
       summary_before: structuredClone(statusTemplate),
       summary_after: structuredClone(statusTemplate),
@@ -2213,7 +2224,6 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
 
     const staffDataArray = [];
 
-    // Process each staff member
     for (const staff of staffList) {
       const staff_id = staff.staff_id;
       const staff_name = `${staff.staff_first_name} ${staff.staff_last_name}`;
@@ -2223,7 +2233,13 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
         staff_name,
         summary_before: structuredClone(statusTemplate),
         summary_after: structuredClone(statusTemplate),
-        irregularity_analysis: { total_irregularities: 0, approved_changes: 0, rejected_changes: 0 }
+        irregularity_analysis: { 
+          total_irregularities: 0, 
+          approved_changes: 0, 
+          rejected_changes: 0,
+          irregularities_before: 0,  // ✅ ADD
+          irregularities_after: 0     // ✅ ADD
+        }
       };
 
       for (let cycleIdx = 0; cycleIdx < cycles.length; cycleIdx++) {
@@ -2240,7 +2256,7 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
               WHEN 10 THEN 'Very Less'
               WHEN 12 THEN 'On Leave'
               WHEN 13 THEN 'Holiday'
-			  WHEN 15 THEN 'Non Working'   -- ✅ ADD
+              WHEN 15 THEN 'Non Working'
               WHEN 16 THEN 'Late CheckIn'
               ELSE ''
             END AS newStatus,
@@ -2253,7 +2269,7 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
               WHEN 10 THEN 'Very Less'
               WHEN 12 THEN 'On Leave'
               WHEN 13 THEN 'Holiday'
-			  WHEN 15 THEN 'Non Working'   -- ✅ ADD
+              WHEN 15 THEN 'Non Working'
               WHEN 16 THEN 'Late CheckIn'
               ELSE ''
             END AS prevStatusRaw,
@@ -2268,13 +2284,11 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
           const beforeRaw = r.prevStatusRaw;
           const afterRaw = r.newStatus;
           
-          // Enhance status with completed/incomplete for Late CheckIn only
           const beforeEnhanced = beforeRaw ? getEnhancedStatus(beforeRaw, r.total_time_seven) : null;
           const afterEnhanced = getEnhancedStatus(afterRaw, r.total_time_seven);
           
           const before = beforeEnhanced || afterEnhanced;
 
-          // Count statuses with enhanced Late CheckIn separately
           if (statusKeyMap[before]) {
             staffData.summary_before[statusKeyMap[before]]++;
             departmentData.summary_before[statusKeyMap[before]]++;
@@ -2300,13 +2314,17 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
         }
       }
 
+      // ✅ FIX: Calculate irregularities before and after for each staff member
+      staffData.irregularity_analysis.irregularities_before = countIrregularities(staffData.summary_before);
+      staffData.irregularity_analysis.irregularities_after = countIrregularities(staffData.summary_after);
+
       staffDataArray.push(staffData);
     }
 
     // Build chart data for department
     const labels = ["Present", "Absent", "On Leave", "HalfDay", "Lesswork",
                     "Late CheckIn (Completed)", "Late CheckIn (Incomplete)", 
-                    "Clock out Missing", "Holiday","Non Working"];
+                    "Clock out Missing", "Holiday", "Non Working"];
     const totalBefore = Object.values(departmentData.summary_before).reduce((a, b) => a + b, 0);
     const totalAfter = Object.values(departmentData.summary_after).reduce((a, b) => a + b, 0);
 
@@ -2316,7 +2334,7 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
     const afterCount = [];
 
     for (const label of labels) {
-     const key = label.toLowerCase().replace(/ /g, "_").replace(/[()]/g, "");  // ✅ FIXED
+      const key = label.toLowerCase().replace(/ /g, "_").replace(/[()]/g, "");
       const b = departmentData.summary_before[key] || 0;
       const a = departmentData.summary_after[key] || 0;
 
@@ -2328,7 +2346,6 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
 
     const chartData = { labels, before: beforeArr, after: afterArr, before_count: beforeCount, after_count: afterCount };
 
-    // AI Analysis for Department
     console.log("Calling Mistral AI for department analysis...");
     const ai = await fetch("https://api.mistral.ai/v1/chat/completions", {
       method: "POST",
@@ -2446,7 +2463,6 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
-
 /* =========================================================
    DEPARTMENT COMPARISON ROUTE - With Dynamic Cycles
 ========================================================= */
