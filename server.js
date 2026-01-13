@@ -2316,6 +2316,9 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
 /* =========================================================
    DEPARTMENT REPORT ROUTE - With Dynamic Cycles & LoP
 ========================================================= */
+/* =========================================================
+   DEPARTMENT REPORT ROUTE - With Dynamic Cycles & LoP & Irregularities Fix
+========================================================= */
 app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
   console.log("--------------------------------------------------");
   console.log("➡️ DEPARTMENT API HIT:", new Date().toISOString());
@@ -2381,6 +2384,16 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
       holiday: 0
     };
 
+    // ✅ ADD HELPER FUNCTION TO COUNT IRREGULARITIES
+    const countIrregularities = (summary) => {
+      return (summary.absent || 0) + 
+             (summary.late_checkin_completed || 0) + 
+             (summary.late_checkin_incomplete || 0) + 
+             (summary.clock_out_missing || 0) + 
+             (summary.lesswork || 0) + 
+             (summary.halfday || 0);
+    };
+
     // Aggregate department data
     const departmentData = {
       summary_before: structuredClone(statusTemplate),
@@ -2391,7 +2404,9 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
         after: structuredClone(statusTemplate)
       })),
       total_irregularities: 0,
-      approved_changes: 0
+      approved_changes: 0,
+      irregularities_before: 0,  // ✅ ADD THIS
+      irregularities_after: 0     // ✅ ADD THIS
     };
 
     const staffDataArray = [];
@@ -2409,11 +2424,25 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
         is_faculty,  // Will be updated from attendance records
         summary_before: structuredClone(statusTemplate),
         summary_after: structuredClone(statusTemplate),
-        irregularity_analysis: { total_irregularities: 0, approved_changes: 0, rejected_changes: 0 }
+        irregularity_analysis: { 
+          total_irregularities: 0, 
+          approved_changes: 0, 
+          rejected_changes: 0,
+          irregularities_before: 0,  // ✅ ADD THIS
+          irregularities_after: 0     // ✅ ADD THIS
+        },
+        cycles: []  // ✅ ADD THIS for cycle-wise data
       };
 
       for (let cycleIdx = 0; cycleIdx < cycles.length; cycleIdx++) {
         const cycle = cycles[cycleIdx];
+
+        // ✅ ADD CYCLE DATA FOR STAFF
+        const staffCycleData = {
+          label: cycle.label,
+          before: structuredClone(statusTemplate),
+          after: structuredClone(statusTemplate)
+        };
 
         const [records] = await db.query(`
           SELECT 
@@ -2469,12 +2498,14 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
           // Count statuses with enhanced Late CheckIn separately
           if (statusKeyMap[before]) {
             staffData.summary_before[statusKeyMap[before]]++;
+            staffCycleData.before[statusKeyMap[before]]++;  // ✅ ADD TO CYCLE DATA
             departmentData.summary_before[statusKeyMap[before]]++;
             departmentData.cycles[cycleIdx].before[statusKeyMap[before]]++;
           }
 
           if (statusKeyMap[afterEnhanced]) {
             staffData.summary_after[statusKeyMap[afterEnhanced]]++;
+            staffCycleData.after[statusKeyMap[afterEnhanced]]++;  // ✅ ADD TO CYCLE DATA
             departmentData.summary_after[statusKeyMap[afterEnhanced]]++;
             departmentData.cycles[cycleIdx].after[statusKeyMap[afterEnhanced]]++;
           }
@@ -2490,10 +2521,20 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
             }
           }
         }
+
+        staffData.cycles.push(staffCycleData);  // ✅ ADD CYCLE TO STAFF DATA
       }
+
+      // ✅ CALCULATE IRREGULARITIES FOR EACH STAFF MEMBER
+      staffData.irregularity_analysis.irregularities_before = countIrregularities(staffData.summary_before);
+      staffData.irregularity_analysis.irregularities_after = countIrregularities(staffData.summary_after);
 
       staffDataArray.push(staffData);
     }
+
+    // ✅ CALCULATE IRREGULARITIES FOR DEPARTMENT
+    departmentData.irregularities_before = countIrregularities(departmentData.summary_before);
+    departmentData.irregularities_after = countIrregularities(departmentData.summary_after);
 
     // Determine department is_faculty based on majority
     const academicCount = staffDataArray.filter(s => s.is_faculty === 1).length;
@@ -2539,7 +2580,7 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
         model: "mistral-large-latest",
         messages: [
           {role: "system", content: systemPrompt},
-          {role: "user", content: "DEPARTMENT_DATA:" + JSON.stringify({ department_name, ...departmentData })}
+          {role: "user", content: "DEPARTMENT_DATA:" + JSON.stringify({ department_name, ...departmentData, staff_count: staffList.length })}
         ]
       })
     });
@@ -2645,7 +2686,6 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
-
 /* =========================================================
    DEPARTMENT COMPARISON ROUTE - With Dynamic Cycles & LoP
 ========================================================= */
