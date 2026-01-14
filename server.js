@@ -133,23 +133,40 @@ function getEnhancedStatus(statusRaw, totalTime) {
 /* =========================================================
    UTILITY: CALCULATE ATTENDANCE PERCENTAGE (EXCLUDING HOLIDAYS)
 ========================================================= */
+// function calculateAttendancePercent(summary) {
+//   const totalDays = Object.values(summary).reduce((a, b) => a + b, 0);
+
+//   const holidays = summary.holiday || 0;
+//   const nonWorking = summary.non_working || 0;
+//   const late_checkin_completed = summary.late_checkin_completed || 0;
+
+//   //console.log(summary);
+
+//   const workingDays = totalDays;
+//   const totlworkingDays = summary.present + holidays  + nonWorking + late_checkin_completed;
+
+//   if (workingDays <= 0) return 0;
+
+//   return ((totlworkingDays / workingDays) * 100).toFixed(1);
+// }
+
 function calculateAttendancePercent(summary) {
-  const totalDays = Object.values(summary).reduce((a, b) => a + b, 0);
 
-  const holidays = summary.holiday || 0;
-  const nonWorking = summary.non_working || 0;
+  const totalDays =
+    Object.values(summary).reduce((a, b) => a + b, 0) -
+    (summary.holiday || 0) -
+    (summary.non_working || 0);
 
-  const workingDays = totalDays;
-  const totlworkingDays = summary.present + holidays  + nonWorking;
-  //console.log('summary',summary);
-  //console.log('workingDays',workingDays);
-  //console.log('summary.present',summary.present);
-  //console.log('totlworkingDays',totlworkingDays);
+  const completedDays =
+    (summary.present || 0) +
+    (summary.late_checkin_completed || 0);
 
-  if (workingDays <= 0) return 0;
+  if (totalDays <= 0) return "0.00";
 
-  return ((totlworkingDays / workingDays) * 100).toFixed(1);
+  return ((completedDays / totalDays) * 100).toFixed(2);
 }
+
+
 /* =========================================================
    UTILITY: BUILD CYCLES DYNAMICALLY
 ========================================================= */
@@ -183,6 +200,708 @@ function buildCycles(numCycles = 6) {
   }
 
   return cycles;
+}
+
+/* =========================================================
+   NEW: BEFORE REGULARIZATION ANALYSIS - HELPER FUNCTIONS
+========================================================= */
+
+function calculateWorkingDaysAnalysis(summary, dateWiseData) {
+  const analysis = {
+    total_days: 0,
+    completed_days: 0,
+    incomplete_days: 0,
+    completion_percentage: 0,
+    status_breakdown: {
+      present: summary.present || 0,
+      late_completed: summary.late_checkin_completed || 0,
+      late_incomplete: summary.late_checkin_incomplete || 0,
+      halfday: summary.halfday || 0,
+      lesswork: summary.lesswork || 0,
+      absent: summary.absent || 0,
+      on_leave: summary.on_leave || 0,
+      clock_out_missing: summary.clock_out_missing || 0,
+      holiday: summary.holiday || 0,
+      non_working: summary.non_working || 0
+    }
+  };
+
+  analysis.total_days = Object.values(summary).reduce((a, b) => a + b, 0) - 
+                        (summary.holiday || 0) - (summary.non_working || 0);
+  analysis.completed_days = (summary.present || 0) + (summary.late_checkin_completed || 0);
+  analysis.incomplete_days = analysis.total_days - analysis.completed_days;
+
+  if (analysis.total_days > 0) {
+    analysis.completion_percentage = ((analysis.completed_days / analysis.total_days) * 100).toFixed(2);
+  }
+
+  return analysis;
+}
+
+/* =========================================================
+   NEW: OVERALL SUMMARY SECTION (BEFORE REGULARIZATION DATA)
+========================================================= */
+
+function buildOverallSummaryMetricsHTML(summaryData) {
+  return `
+    <div class="chart-container">
+      <h3 class="section-title">📈 Overall Summary - Before Regularization</h3>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-top: 20px;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+          <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">📅 Total Days</div>
+          <div style="font-size: 36px; font-weight: 700;">${summaryData.total_days}</div>
+        </div>
+        
+        <div style="background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%); color: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+          <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">🏖️ Holidays</div>
+          <div style="font-size: 36px; font-weight: 700;">${summaryData.holidays}</div>
+        </div>
+        
+        <div style="background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%); color: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+          <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">🚫 Non Working Days</div>
+          <div style="font-size: 36px; font-weight: 700;">${summaryData.non_working_days}</div>
+        </div>
+        
+        <div style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+          <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">💼 Total Working Days</div>
+          <div style="font-size: 36px; font-weight: 700;">${summaryData.total_working_days}</div>
+          <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">Total - Holidays - Non Working</div>
+        </div>
+        
+        <div style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+          <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">❌ Absence</div>
+          <div style="font-size: 36px; font-weight: 700;">${summaryData.absence}</div>
+        </div>
+        
+        <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+          <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">🏥 Leave</div>
+          <div style="font-size: 36px; font-weight: 700;">${summaryData.leave}</div>
+        </div>
+        
+        <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+          <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">⚠️ Irregularities</div>
+          <div style="font-size: 36px; font-weight: 700;">${summaryData.irregularities}</div>
+          <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">Lesswork + Late + Clockout Missing</div>
+        </div>
+        
+        <div style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); color: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+          <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">✅ Actual Days Present (≥8.5hrs)</div>
+          <div style="font-size: 36px; font-weight: 700;">${summaryData.actual_present}</div>
+          <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">Present + Late CheckIn (Completed)</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function buildOverallSummaryChartHTML(summaryData, canvasId = "overallSummaryChart") {
+  const chartData = {
+    labels: [
+      'Total Days', 
+      'Holidays', 
+      'Non Working Days', 
+      'Total Working Days', 
+      'Actual Present (≥8.5hrs)',
+      'Absence', 
+      'Leave', 
+      'Irregularities'
+      
+    ],
+    data: [
+      summaryData.total_days,
+      summaryData.holidays,
+      summaryData.non_working_days,
+      summaryData.total_working_days,
+      summaryData.actual_present,
+      summaryData.absence,
+      summaryData.leave,
+      summaryData.irregularities
+      
+    ],
+    colors: [
+      '#667eea', // Total Days - Purple
+      '#94a3b8', // Holidays - Gray
+      '#64748b', // Non Working - Dark Gray
+      '#3b82f6', // Working Days - Blue
+      '#16a34a' , // Actual Present - Green
+      '#dc2626', // Absence - Red
+      '#0284c7', // Leave - Cyan
+      '#f59e0b' // Irregularities - Orange
+      
+    ]
+  };
+
+  return `
+    <div class="chart-container">
+      <h3 class="section-title">📊 Overall Summary - Visual Breakdown</h3>
+      <div class="chart-wrapper">
+        <canvas id="${canvasId}"></canvas>
+      </div>
+    </div>
+
+    <script>
+      (function() {
+        function initOverallChart_${canvasId}() {
+          if (typeof Chart === 'undefined') {
+            setTimeout(initOverallChart_${canvasId}, 100);
+            return;
+          }
+          
+          if (typeof ChartDataLabels !== 'undefined' && Chart.registry && !Chart.registry.plugins.get('datalabels')) {
+            Chart.register(ChartDataLabels);
+          }
+          
+          const chartData = ${JSON.stringify(chartData)};
+          const ctx = document.getElementById("${canvasId}");
+          
+          if (!ctx) {
+            console.error('Canvas not found: ${canvasId}');
+            return;
+          }
+          
+          new Chart(ctx, {
+            type: "bar",
+            data: {
+              labels: chartData.labels,
+              datasets: [{
+                label: "Count",
+                data: chartData.data,
+                backgroundColor: chartData.colors,
+                borderColor: chartData.colors,
+                borderWidth: 2,
+                borderRadius: 8
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                datalabels: {
+                  anchor: 'end',
+                  align: 'top',
+                  offset: 4,
+                  color: "#1e293b",
+                  font: { weight: "bold", size: 12 },
+                  formatter: (value) => value > 0 ? value : ''
+                },
+                tooltip: {
+                  backgroundColor: "rgba(0, 0, 0, 0.8)",
+                  padding: 12,
+                  callbacks: {
+                    label: function(context) {
+                      return context.parsed.y + ' days';
+                    }
+                  }
+                }
+              },
+              scales: {
+                y: { 
+                  beginAtZero: true, 
+                  ticks: { stepSize: 1, font: { size: 12 } }, 
+                  grid: { color: "rgba(0, 0, 0, 0.05)" },
+                  title: {
+                    display: true,
+                    text: 'Number of Days',
+                    font: { size: 14, weight: 'bold' }
+                  }
+                },
+                x: { 
+                  ticks: { font: { size: 11 }, maxRotation: 45, minRotation: 45 }, 
+                  grid: { display: false } 
+                }
+              },
+              layout: { padding: { top: 30 } }
+            }
+          });
+        }
+        
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', initOverallChart_${canvasId});
+        } else {
+          initOverallChart_${canvasId}();
+        }
+      })();
+    </script>
+  `;
+}
+
+function buildOverallSummaryCycleWiseTableHTML(cyclesData) {
+  if (!cyclesData || cyclesData.length === 0) {
+    return '';
+  }
+
+  // Build header row
+  let headerRow = `<tr><th>Metric</th>`;
+  cyclesData.forEach(c => {
+    headerRow += `<th>${c.label}</th>`;
+  });
+  headerRow += `<th>Total</th></tr>`;
+
+  // Metrics to display
+  const metrics = [
+    { label: "📅 Total Days", key: "total_days", color: "#667eea" },
+    { label: "🏖️ Holidays", key: "holidays", color: "#94a3b8" },
+    { label: "🚫 Non Working Days", key: "non_working_days", color: "#64748b" },
+    { label: "💼 Total Working Days", key: "total_working_days", color: "#3b82f6" },
+    { label: "❌ Absence", key: "absence", color: "#dc2626" },
+    { label: "🏥 Leave", key: "leave", color: "#0284c7" },
+    { label: "⚠️ Irregularities", key: "irregularities", color: "#f59e0b" },
+    { label: "✅ Actual Present (≥8.5hrs)", key: "actual_present", color: "#16a34a" }
+  ];
+
+  // Build body rows
+  let bodyRows = "";
+  metrics.forEach(metric => {
+    bodyRows += `<tr><td style="text-align: left;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="width: 12px; height: 12px; border-radius: 3px; background: ${metric.color};"></div>
+        <span style="font-weight: 600;">${metric.label}</span>
+      </div>
+    </td>`;
+
+    let rowTotal = 0;
+    cyclesData.forEach(cycle => {
+      const val = cycle[metric.key] || 0;
+      rowTotal += val;
+      bodyRows += `<td style="text-align: center; font-weight: 600;">${val}</td>`;
+    });
+
+    bodyRows += `<td style="text-align: center; font-weight: 700; background: #f0f9ff;">${rowTotal}</td></tr>`;
+  });
+
+  // Add completion rate row
+  bodyRows += `<tr style="background: #dbeafe; font-weight: 600;">
+    <td style="text-align: left;"><strong>📊 Completion Rate (%)</strong></td>`;
+  
+  cyclesData.forEach(cycle => {
+    const percentage = cycle.total_working_days > 0 ? 
+      ((cycle.actual_present / cycle.total_working_days) * 100).toFixed(1) : 0;
+    
+    const badgeColor = percentage >= 95 ? '#16a34a' : 
+                       percentage >= 85 ? '#2563eb' : 
+                       percentage >= 70 ? '#d97706' : '#dc2626';
+    
+    bodyRows += `<td style="text-align: center;">
+      <span style="background: ${badgeColor}; color: white; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 13px;">
+        ${percentage}%
+      </span>
+    </td>`;
+  });
+  
+  // Overall completion rate
+  const totalWorkingDays = cyclesData.reduce((sum, c) => sum + (c.total_working_days || 0), 0);
+  const totalActualPresent = cyclesData.reduce((sum, c) => sum + (c.actual_present || 0), 0);
+  const overallPercentage = totalWorkingDays > 0 ? 
+    ((totalActualPresent / totalWorkingDays) * 100).toFixed(1) : 0;
+  const overallBadgeColor = overallPercentage >= 95 ? '#16a34a' : 
+                            overallPercentage >= 85 ? '#2563eb' : 
+                            overallPercentage >= 70 ? '#d97706' : '#dc2626';
+  
+  bodyRows += `<td style="text-align: center; background: #dbeafe;">
+    <span style="background: ${overallBadgeColor}; color: white; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 14px;">
+      ${overallPercentage}%
+    </span>
+  </td></tr>`;
+
+  return `
+    <div class="table-container">
+      <h3 class="section-title">📋 Overall Summary - Cycle-wise Breakdown</h3>
+      <p style="color: #64748b; margin-bottom: 15px;">
+        <strong>Note:</strong> All metrics based on "Before Regularization" data. 
+        Actual Days Present = Present + Late CheckIn (Completed where hours ≥ 08:30:00).
+        Irregularities = Absent + HalfDay + Lesswork + Late CheckIn (both) + Clock out Missing.
+      </p>
+      <div style="overflow-x: auto;">
+        <table>
+          <thead>
+            ${headerRow}
+          </thead>
+          <tbody>
+            ${bodyRows}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function calculateOverallSummaryData(summary_before, cycles = null) {
+  const summaryData = {
+    total_days: Object.values(summary_before).reduce((a, b) => a + b, 0),
+    holidays: summary_before.holiday || 0,
+    non_working_days: summary_before.non_working || 0,
+    total_working_days: 0,
+    absence: summary_before.absent || 0,
+    leave: summary_before.on_leave || 0,
+    irregularities: 0,
+    actual_present: 0
+  };
+
+  summaryData.total_working_days = summaryData.total_days - summaryData.holidays - summaryData.non_working_days;
+  
+  summaryData.irregularities =                             
+                               (summary_before.lesswork || 0) +                                
+                               (summary_before.late_checkin_incomplete || 0) + 
+                               (summary_before.clock_out_missing || 0);
+  
+  summaryData.actual_present = (summary_before.present || 0) + (summary_before.late_checkin_completed || 0);
+
+  return summaryData;
+}
+
+function calculateOverallSummaryCycleWiseData(cycles) {
+  if (!cycles || cycles.length === 0) {
+    return [];
+  }
+
+  return cycles.map(cycle => {
+    const beforeData = cycle.before;
+    const total_days = Object.values(beforeData).reduce((a, b) => a + b, 0);
+    const holidays = beforeData.holiday || 0;
+    const non_working_days = beforeData.non_working || 0;
+    const total_working_days = total_days - holidays - non_working_days;
+    
+    const irregularities = (beforeData.absent || 0) + 
+                          (beforeData.halfday || 0) + 
+                          (beforeData.lesswork || 0) + 
+                          (beforeData.late_checkin_completed || 0) + 
+                          (beforeData.late_checkin_incomplete || 0) + 
+                          (beforeData.clock_out_missing || 0);
+    
+    const actual_present = (beforeData.present || 0) + (beforeData.late_checkin_completed || 0);
+
+    return {
+      label: cycle.label,
+      total_days,
+      holidays,
+      non_working_days,
+      total_working_days,
+      absence: beforeData.absent || 0,
+      leave: beforeData.on_leave || 0,
+      irregularities,
+      actual_present
+    };
+  });
+}
+
+function buildBeforeAnalysisChartHTML(workingDaysAnalysis, canvasId = "beforeAnalysisChart") {
+  const statusData = workingDaysAnalysis.status_breakdown;
+  
+  const chartData = {
+    labels: ['Present', 'Late CheckIn (Completed)', 'Late CheckIn (Incomplete)', 'HalfDay', 'Lesswork', 'Absent', 'On Leave', 'Clock out Missing', 'Holiday', 'Non Working'],
+    data: [statusData.present, statusData.late_completed, statusData.late_incomplete, statusData.halfday, statusData.lesswork, statusData.absent, statusData.on_leave, statusData.clock_out_missing, statusData.holiday, statusData.non_working],
+    colors: ['#16a34a', '#22c55e', '#f59e0b', '#fb923c', '#fbbf24', '#dc2626', '#3b82f6', '#ef4444', '#94a3b8', '#64748b']
+  };
+
+  return `
+    <div class="chart-container">
+      <h3 class="section-title">📊 Before Regularization - Status Distribution</h3>
+      <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+          <div style="text-align: center;">
+            <div style="font-size: 14px; color: #64748b; margin-bottom: 5px;">Total Working Days</div>
+            <div style="font-size: 32px; font-weight: 700; color: #1e293b;">${workingDaysAnalysis.total_days}</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 14px; color: #64748b; margin-bottom: 5px;">Completed Days (≥8:30hrs)</div>
+            <div style="font-size: 32px; font-weight: 700; color: #16a34a;">${workingDaysAnalysis.completed_days}</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 14px; color: #64748b; margin-bottom: 5px;">Incomplete Days</div>
+            <div style="font-size: 32px; font-weight: 700; color: #dc2626;">${workingDaysAnalysis.incomplete_days}</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 14px; color: #64748b; margin-bottom: 5px;">Completion Rate</div>
+            <div style="font-size: 32px; font-weight: 700; color: #0284c7;">${workingDaysAnalysis.completion_percentage}%</div>
+          </div>
+        </div>
+      </div>
+      <div class="chart-wrapper">
+        <canvas id="${canvasId}"></canvas>
+      </div>
+    </div>
+
+    <script>
+      (function() {
+        function initChart_${canvasId}() {
+          if (typeof Chart === 'undefined') {
+            setTimeout(initChart_${canvasId}, 100);
+            return;
+          }
+          
+          if (typeof ChartDataLabels !== 'undefined' && Chart.registry && !Chart.registry.plugins.get('datalabels')) {
+            Chart.register(ChartDataLabels);
+          }
+          
+          const chartData = ${JSON.stringify(chartData)};
+          const ctx = document.getElementById("${canvasId}");
+          
+          if (!ctx) {
+            console.error('Canvas not found: ${canvasId}');
+            return;
+          }
+          
+          new Chart(ctx, {
+            type: "bar",
+            data: {
+              labels: chartData.labels,
+              datasets: [{
+                label: "Number of Days",
+                data: chartData.data,
+                backgroundColor: chartData.colors,
+                borderColor: chartData.colors,
+                borderWidth: 2,
+                borderRadius: 8
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                datalabels: {
+                  anchor: 'end',
+                  align: 'top',
+                  offset: 4,
+                  color: "#1e293b",
+                  font: { weight: "bold", size: 11 },
+                  formatter: (value) => value > 0 ? value : ''
+                },
+                tooltip: {
+                  backgroundColor: "rgba(0, 0, 0, 0.8)",
+                  padding: 12,
+                  callbacks: {
+                    label: function(context) {
+                      const total = chartData.data.reduce((a,b) => a+b, 0);
+                      const percentage = total > 0 ? ((context.parsed.y / total) * 100).toFixed(1) : 0;
+                      return context.parsed.y + ' days (' + percentage + '%)';
+                    }
+                  }
+                }
+              },
+              scales: {
+                y: { 
+                  beginAtZero: true, 
+                  ticks: { stepSize: 1, font: { size: 12 } }, 
+                  grid: { color: "rgba(0, 0, 0, 0.05)" } 
+                },
+                x: { 
+                  ticks: { font: { size: 10 }, maxRotation: 45, minRotation: 45 }, 
+                  grid: { display: false } 
+                }
+              },
+              layout: { padding: { top: 30 } }
+            }
+          });
+        }
+        
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', initChart_${canvasId});
+        } else {
+          initChart_${canvasId}();
+        }
+      })();
+    </script>
+  `;
+}
+
+function buildBeforeAnalysisTableHTML(workingDaysAnalysis) {
+  const statusData = workingDaysAnalysis.status_breakdown;
+  const total = workingDaysAnalysis.total_days;
+
+  const statuses = [
+    { label: "Present", value: statusData.present, color: "#16a34a" },
+    { label: "Late CheckIn (Completed) ✓", value: statusData.late_completed, color: "#22c55e" },
+    { label: "Late CheckIn (Incomplete) ✗", value: statusData.late_incomplete, color: "#f59e0b" },
+    { label: "HalfDay", value: statusData.halfday, color: "#fb923c" },
+    { label: "Lesswork", value: statusData.lesswork, color: "#fbbf24" },
+    { label: "Absent", value: statusData.absent, color: "#dc2626" },
+    { label: "On Leave", value: statusData.on_leave, color: "#3b82f6" },
+    { label: "Clock out Missing", value: statusData.clock_out_missing, color: "#ef4444" },
+    { label: "Holiday", value: statusData.holiday, color: "#94a3b8" },
+    { label: "Non Working", value: statusData.non_working, color: "#64748b" }
+  ];
+
+  let tableRows = "";
+  statuses.forEach(status => {
+    const percentage = total > 0 ? ((status.value / total) * 100).toFixed(1) : 0;
+    tableRows += `
+      <tr>
+        <td><div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 12px; height: 12px; border-radius: 3px; background: ${status.color};"></div>
+          <span style="font-weight: 600;">${status.label}</span>
+        </div></td>
+        <td style="text-align: center; font-weight: 700; font-size: 18px;">${status.value}</td>
+        <td style="text-align: center;">
+          <span style="background: ${status.color}20; color: ${status.color}; padding: 6px 12px; border-radius: 6px; font-weight: 700;">${percentage}%</span>
+        </td>
+      </tr>`;
+  });
+
+  tableRows += `
+    <tr style="background: #f0f9ff; font-weight: bold; border-top: 3px solid #3b82f6;">
+      <td>Total Working Days (excl. holidays)</td>
+      <td style="text-align: center; font-size: 20px;">${total}</td>
+      <td style="text-align: center;">100%</td>
+    </tr>
+    <tr style="background: #dcfce7;">
+      <td><strong>✓ Completed Days (≥8:30 hours)</strong></td>
+      <td style="text-align: center; color: #16a34a; font-size: 20px; font-weight: 700;">${workingDaysAnalysis.completed_days}</td>
+      <td style="text-align: center;">
+        <span style="background: #16a34a; color: white; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 16px;">${workingDaysAnalysis.completion_percentage}%</span>
+      </td>
+    </tr>
+    <tr style="background: #fee2e2;">
+      <td><strong>✗ Incomplete Days</strong></td>
+      <td style="text-align: center; color: #dc2626; font-size: 20px; font-weight: 700;">${workingDaysAnalysis.incomplete_days}</td>
+      <td style="text-align: center;">
+        <span style="background: #dc2626; color: white; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 16px;">${(100 - parseFloat(workingDaysAnalysis.completion_percentage)).toFixed(2)}%</span>
+      </td>
+    </tr>`;
+
+  return `
+    <div class="table-container">
+      <h3 class="section-title">📋 Before Regularization - Detailed Breakdown</h3>
+      <p style="color: #64748b; margin-bottom: 15px;">
+        <strong>Note:</strong> "Completed Days" = Present + Late CheckIn (Completed where working hours ≥ 08:30:00). 
+        Holidays and Non Working days excluded from calculations.
+      </p>
+      <table>
+        <thead><tr><th style="text-align: left;">Status</th><th>Count</th><th>Percentage</th></tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>`;
+}
+
+function buildBeforeRegularizationCycleWiseTableHTML(finalData) {
+  if (!finalData.cycles || finalData.cycles.length === 0) {
+    return '';
+  }
+
+  const statuses = [
+    { label: "Present", key: "present", color: "#16a34a" },
+    { label: "Late CheckIn (Completed) ✓", key: "late_checkin_completed", color: "#22c55e" },
+    { label: "Late CheckIn (Incomplete) ✗", key: "late_checkin_incomplete", color: "#f59e0b" },
+    { label: "HalfDay", key: "halfday", color: "#fb923c" },
+    { label: "Lesswork", key: "lesswork", color: "#fbbf24" },
+    { label: "Absent", key: "absent", color: "#dc2626" },
+    { label: "On Leave", key: "on_leave", color: "#3b82f6" },
+    { label: "Clock out Missing", key: "clock_out_missing", color: "#ef4444" },
+    { label: "Holiday", key: "holiday", color: "#94a3b8" },
+    { label: "Non Working", key: "non_working", color: "#64748b" }
+  ];
+
+  const cycles = finalData.cycles;
+
+  // Build header row
+  let headerRow = `<tr><th>Status</th>`;
+  cycles.forEach(c => {
+    headerRow += `<th>${c.label}</th>`;
+  });
+  headerRow += `<th>Total</th></tr>`;
+
+  // Build body rows for each status
+  let bodyRows = "";
+  statuses.forEach(status => {
+    bodyRows += `<tr><td style="text-align: left;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="width: 12px; height: 12px; border-radius: 3px; background: ${status.color};"></div>
+        <span style="font-weight: 600;">${status.label}</span>
+      </div>
+    </td>`;
+
+    let rowTotal = 0;
+    cycles.forEach(cycle => {
+      const val = cycle.before[status.key] || 0;
+      rowTotal += val;
+      bodyRows += `<td style="text-align: center; font-weight: 600;">${val}</td>`;
+    });
+
+    bodyRows += `<td style="text-align: center; font-weight: 700; background: #f0f9ff;">${rowTotal}</td></tr>`;
+  });
+
+  // Add working days row (excluding holidays and non-working)
+  bodyRows += `<tr style="background: #f8fafc; font-weight: 600; border-top: 2px solid #94a3b8;">
+    <td style="text-align: left;">Working Days (excl. holidays)</td>`;
+  
+  let totalWorkingDays = 0;
+  cycles.forEach(cycle => {
+    const cycleTotal = Object.values(cycle.before).reduce((sum, val) => sum + val, 0);
+    const holidays = cycle.before.holiday || 0;
+    const nonWorking = cycle.before.non_working || 0;
+    const workingDays = cycleTotal - holidays - nonWorking;
+    totalWorkingDays += workingDays;
+    bodyRows += `<td style="text-align: center;">${workingDays}</td>`;
+  });
+  bodyRows += `<td style="text-align: center; background: #f0f9ff;">${totalWorkingDays}</td></tr>`;
+
+  // Add completed days row (Present + Late CheckIn Completed)
+  bodyRows += `<tr style="background: #dcfce7; font-weight: 600;">
+    <td style="text-align: left;"><strong>✓ Completed Days (≥8:30 hours)</strong></td>`;
+  
+  let totalCompletedDays = 0;
+  cycles.forEach(cycle => {
+    const completedDays = (cycle.before.present || 0) + (cycle.before.late_checkin_completed || 0);
+    totalCompletedDays += completedDays;
+    bodyRows += `<td style="text-align: center; color: #16a34a; font-weight: 700;">${completedDays}</td>`;
+  });
+  bodyRows += `<td style="text-align: center; color: #16a34a; font-weight: 700; background: #dcfce7;">${totalCompletedDays}</td></tr>`;
+
+  // Add completion percentage row
+  bodyRows += `<tr style="background: #dbeafe; font-weight: 600;">
+    <td style="text-align: left;"><strong>Completion Rate</strong></td>`;
+  
+  cycles.forEach(cycle => {
+    const cycleTotal = Object.values(cycle.before).reduce((sum, val) => sum + val, 0);
+    const holidays = cycle.before.holiday || 0;
+    const nonWorking = cycle.before.non_working || 0;
+    const workingDays = cycleTotal - holidays - nonWorking;
+    const completedDays = (cycle.before.present || 0) + (cycle.before.late_checkin_completed || 0);
+    const percentage = workingDays > 0 ? ((completedDays / workingDays) * 100).toFixed(1) : 0;
+    
+    const badgeColor = percentage >= 95 ? '#16a34a' : 
+                       percentage >= 85 ? '#2563eb' : 
+                       percentage >= 70 ? '#d97706' : '#dc2626';
+    
+    bodyRows += `<td style="text-align: center;">
+      <span style="background: ${badgeColor}; color: white; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 13px;">
+        ${percentage}%
+      </span>
+    </td>`;
+  });
+  
+  const overallPercentage = totalWorkingDays > 0 ? ((totalCompletedDays / totalWorkingDays) * 100).toFixed(1) : 0;
+  const overallBadgeColor = overallPercentage >= 95 ? '#16a34a' : 
+                            overallPercentage >= 85 ? '#2563eb' : 
+                            overallPercentage >= 70 ? '#d97706' : '#dc2626';
+  
+  bodyRows += `<td style="text-align: center; background: #dbeafe;">
+    <span style="background: ${overallBadgeColor}; color: white; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 14px;">
+      ${overallPercentage}%
+    </span>
+  </td></tr>`;
+
+  return `
+    <div class="table-container">
+      <h3 class="section-title">📅 Before Regularization - Cycle-wise Breakdown</h3>
+      <p style="color: #64748b; margin-bottom: 15px;">
+        <strong>Note:</strong> Shows status distribution before regularization across all cycles. 
+        Completion Rate = (Present + Late CheckIn Completed) / Working Days. 
+        Holidays and Non Working days excluded from working days calculation.
+      </p>
+      <div style="overflow-x: auto;">
+        <table>
+          <thead>
+            ${headerRow}
+          </thead>
+          <tbody>
+            ${bodyRows}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
 }
 
 /* =========================================================
@@ -2034,6 +2753,9 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
       after_count: afterCount
     };
 
+    // ✅ NEW: Calculate working days analysis
+    const workingDaysAnalysis = calculateWorkingDaysAnalysis(finalData.summary_before, finalData.date_wise_status);
+
     console.log("STEP 7️⃣ Calling Mistral AI...");
     const ai = await fetch("https://api.mistral.ai/v1/chat/completions", {
       method: "POST",
@@ -2099,6 +2821,14 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
     </div>
 
     <div class="section">
+      ${buildOverallSummaryMetricsHTML(calculateOverallSummaryData(finalData.summary_before))}
+      ${buildOverallSummaryChartHTML(calculateOverallSummaryData(finalData.summary_before), "overallSummary_staff_" + staff_id)}
+      ${buildOverallSummaryCycleWiseTableHTML(calculateOverallSummaryCycleWiseData(finalData.cycles))}
+      
+      ${buildBeforeAnalysisChartHTML(workingDaysAnalysis, "beforeChart_" + staff_id)}
+      ${buildBeforeAnalysisTableHTML(workingDaysAnalysis)}
+      
+      ${buildBeforeRegularizationCycleWiseTableHTML(finalData)}
       ${buildModernGraphHTML(chartData)}
       ${buildModernCycleWiseTableHTML(finalData)}
       ${buildDateWiseStatusTableHTML(finalData.date_wise_status)}
@@ -2132,9 +2862,6 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
   }
 });
 
-/* =========================================================
-   DEPARTMENT REPORT ROUTE - With Dynamic Cycles
-========================================================= */
 /* =========================================================
    DEPARTMENT REPORT ROUTE - With Dynamic Cycles (FIXED)
 ========================================================= */
@@ -2346,6 +3073,9 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
 
     const chartData = { labels, before: beforeArr, after: afterArr, before_count: beforeCount, after_count: afterCount };
 
+    // ✅ NEW: Calculate working days analysis
+    const workingDaysAnalysis = calculateWorkingDaysAnalysis(departmentData.summary_before, []);
+
     console.log("Calling Mistral AI for department analysis...");
     const ai = await fetch("https://api.mistral.ai/v1/chat/completions", {
       method: "POST",
@@ -2430,6 +3160,14 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
         </div>
       </div>
 
+      ${buildOverallSummaryMetricsHTML(calculateOverallSummaryData(departmentData.summary_before))}
+      ${buildOverallSummaryChartHTML(calculateOverallSummaryData(departmentData.summary_before), "overallSummary_dept_" + department_id)}
+      ${buildOverallSummaryCycleWiseTableHTML(calculateOverallSummaryCycleWiseData(departmentData.cycles))}
+
+      ${buildBeforeAnalysisChartHTML(workingDaysAnalysis, "beforeChart_dept_" + department_id)}
+      ${buildBeforeAnalysisTableHTML(workingDaysAnalysis)}
+
+      ${buildBeforeRegularizationCycleWiseTableHTML({cycles: departmentData.cycles})}
       ${buildModernGraphHTML(chartData, "departmentGraph")}
       ${buildDepartmentCycleWiseTableHTML(departmentData)}
       ${buildDepartmentStaffBeforeAfterTableHTML(staffDataArray)}
@@ -2463,6 +3201,7 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
+
 /* =========================================================
    DEPARTMENT COMPARISON ROUTE - With Dynamic Cycles
 ========================================================= */
@@ -2635,6 +3374,11 @@ app.post("/departmentComparisonReport", async (req, res) => {
       departmentDataArray.push(departmentData);
     }
 
+    // ✅ NEW: Calculate working days analysis for each department
+    const deptComparisonWorkingAnalysis = departmentDataArray.map(dept => 
+      calculateWorkingDaysAnalysis(dept.summary_before, [])
+    );
+
     // AI Analysis for Department Comparison
     console.log("Calling Mistral AI for department comparison analysis...");
     const ai = await fetch("https://api.mistral.ai/v1/chat/completions", {
@@ -2701,6 +3445,7 @@ app.post("/departmentComparisonReport", async (req, res) => {
     </div>
 
     <div class="section">
+     
       ${buildDepartmentComparisonHTML(departmentDataArray)}
       ${buildDepartmentComparisonSummaryTableHTML(departmentDataArray)}
       ${buildDepartmentComparisonIrregularitiesTableHTML(departmentDataArray)}
@@ -2890,6 +3635,11 @@ app.post("/staffComparisonReport", async (req, res) => {
       staffDataArray.push(staffData);
     }
 
+    // ✅ NEW: Calculate working days analysis for each staff
+    const comparisonWorkingAnalysis = staffDataArray.map(staff => 
+      calculateWorkingDaysAnalysis(staff.summary_before, [])
+    );
+
     // AI Analysis for Comparison
     console.log("Calling Mistral AI for comparison analysis...");
     const ai = await fetch("https://api.mistral.ai/v1/chat/completions", {
@@ -2952,6 +3702,7 @@ app.post("/staffComparisonReport", async (req, res) => {
     </div>
 
     <div class="section">
+     
       ${buildStaffComparisonHTML(staffDataArray)}
       ${buildStaffComparisonSummaryTableHTML(staffDataArray)}
       ${buildStaffComparisonIrregularitiesTableHTML(staffDataArray)}
