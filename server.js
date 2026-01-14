@@ -385,23 +385,17 @@ function buildOverallSummaryChartHTML(summaryData, canvasId = "overallSummaryCha
                     if (value === 0) return '';
                     
                     const index = context.dataIndex;
-                    let percentage = 0;
                     
-                    // Calculate percentage based on the appropriate base
-                    if (index === 0) {
-                      // Total Days - show as 100%
-                      percentage = 100;
-                    } else if (index <= 3) {
-                      // Holidays, Non Working Days, Total Working Days - % of Total Days
-                      percentage = (value / summaryData.total_days * 100).toFixed(1);
-                    } else {
-                      // Actual Present, Absence, Leave, Irregularities - % of Total Working Days
-                      percentage = summaryData.total_working_days > 0 
+                    // Show percentage only for: Actual Present, Absence, Leave, Irregularities (indices 4-7)
+                    if (index >= 4) {
+                      const percentage = summaryData.total_working_days > 0 
                         ? (value / summaryData.total_working_days * 100).toFixed(1)
                         : 0;
+                      return value + '\\n(' + percentage + '%)';
                     }
                     
-                    return value + '(' + percentage + '%)';
+                    // For Total Days, Holidays, Non Working Days, Total Working Days - show only count
+                    return value;
                   }
                 },
                 tooltip: {
@@ -411,19 +405,17 @@ function buildOverallSummaryChartHTML(summaryData, canvasId = "overallSummaryCha
                     label: function(context) {
                       const index = context.dataIndex;
                       const value = context.parsed.y;
-                      let percentage = 0;
                       
-                      if (index === 0) {
-                        percentage = 100;
-                      } else if (index <= 3) {
-                        percentage = (value / summaryData.total_days * 100).toFixed(1);
-                      } else {
-                        percentage = summaryData.total_working_days > 0 
+                      // Show percentage only for: Actual Present, Absence, Leave, Irregularities
+                      if (index >= 4) {
+                        const percentage = summaryData.total_working_days > 0 
                           ? (value / summaryData.total_working_days * 100).toFixed(1)
                           : 0;
+                        return value + ' days (' + percentage + '%)';
                       }
                       
-                      return value + ' days (' + percentage + '%)';
+                      // For others, show only days
+                      return value + ' days';
                     }
                   }
                 }
@@ -543,7 +535,7 @@ function buildOverallSummaryCycleWiseTableHTML(cyclesData) {
       <p style="color: #64748b; margin-bottom: 15px;">
         <strong>Note:</strong> All metrics based on "Before Regularization" data. 
         Actual Days Present = Present + Late CheckIn (Completed where hours ≥ 08:30:00).
-        Irregularities =  Lesswork + Late CheckIn + Clock out Missing.
+        <br> Irregularities =  Lesswork + Late CheckIn (Not completed where hours ≥ 08:30:00). + Clock out Missing.
       </p>
       <div style="overflow-x: auto;">
         <table>
@@ -668,6 +660,7 @@ function buildBeforeAnalysisChartHTML(workingDaysAnalysis, canvasId = "beforeAna
           }
           
           const chartData = ${JSON.stringify(chartData)};
+          const workingDaysAnalysis = ${JSON.stringify(workingDaysAnalysis)};
           const ctx = document.getElementById("${canvasId}");
           
           if (!ctx) {
@@ -699,14 +692,21 @@ function buildBeforeAnalysisChartHTML(workingDaysAnalysis, canvasId = "beforeAna
                   offset: 4,
                   color: "#1e293b",
                   font: { weight: "bold", size: 11 },
-                  formatter: (value) => value > 0 ? value : ''
+                  formatter: (value) => {
+                    if (value === 0) return '';
+                    
+                    const total = workingDaysAnalysis.total_days;
+                    const percentage = total > 0 ? (value / total * 100).toFixed(1) : 0;
+                    
+                    return value + '(' + percentage + '%)';
+                  }
                 },
                 tooltip: {
                   backgroundColor: "rgba(0, 0, 0, 0.8)",
                   padding: 12,
                   callbacks: {
                     label: function(context) {
-                      const total = chartData.data.reduce((a,b) => a+b, 0);
+                      const total = workingDaysAnalysis.total_days;
                       const percentage = total > 0 ? ((context.parsed.y / total) * 100).toFixed(1) : 0;
                       return context.parsed.y + ' days (' + percentage + '%)';
                     }
@@ -738,6 +738,7 @@ function buildBeforeAnalysisChartHTML(workingDaysAnalysis, canvasId = "beforeAna
     </script>
   `;
 }
+
 
 function buildBeforeAnalysisTableHTML(workingDaysAnalysis) {
   const statusData = workingDaysAnalysis.status_breakdown;
@@ -3173,25 +3174,7 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
       </div>
     </div>
 
-    // <div class="section">
-    //   <div class="department-summary">
-    //     <div class="summary-card">
-    //       <div class="number">${departmentData.summary_after.present || 0}</div>
-    //       <div class="label">Total Present Days</div>
-    //     </div>
-    //     <div class="summary-card">
-    //       <div class="number">${departmentData.summary_after.absent || 0}</div>
-    //       <div class="label">Total Absent Days</div>
-    //     </div>
-    //     <div class="summary-card">
-    //       <div class="number">${departmentData.total_irregularities || 0}</div>
-    //       <div class="label">Total Irregularities</div>
-    //     </div>
-    //     <div class="summary-card">
-    //       <div class="number">${departmentData.approved_changes || 0}</div>
-    //       <div class="label">Approved Changes</div>
-    //     </div>
-    //   </div>
+    
 
       ${buildOverallSummaryMetricsHTML(calculateOverallSummaryData(departmentData.summary_before))}
       ${buildOverallSummaryChartHTML(calculateOverallSummaryData(departmentData.summary_before), "overallSummary_dept_" + department_id)}
