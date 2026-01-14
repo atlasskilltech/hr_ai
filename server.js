@@ -281,7 +281,7 @@ function buildOverallSummaryMetricsHTML(summaryData) {
         <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
           <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">⚠️ Irregularities</div>
           <div style="font-size: 36px; font-weight: 700;">${summaryData.irregularities}</div>
-          <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">Lesswork + Late CheckIn (in-completed) + Clockout Missing</div>
+          <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">Lesswork + Late CheckIn (not completed) + Clockout Missing</div>
         </div>
         
         <div style="background: linear-gradient(135deg, #2a312d 0%, #15803d 100%); color: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
