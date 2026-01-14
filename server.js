@@ -3174,7 +3174,8 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
       </div>
     </div>
 
-    
+    <div class="section">
+      
 
       ${buildOverallSummaryMetricsHTML(calculateOverallSummaryData(departmentData.summary_before))}
       ${buildOverallSummaryChartHTML(calculateOverallSummaryData(departmentData.summary_before), "overallSummary_dept_" + department_id)}
