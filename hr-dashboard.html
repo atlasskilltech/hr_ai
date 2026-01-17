@@ -544,6 +544,19 @@
               <div class="hint">Type to search or scroll to select</div>
             </div>
 
+            <!-- ✅ NEW: Staff Selection for Department Report -->
+            <div class="form-group">
+              <label for="dept_staff_select">Select Staff (Optional)</label>
+              <div class="multi-select-container">
+                <div class="searchable-select" id="deptStaffSelectContainer">
+                  <input type="text" class="search-input" id="dept_staff_search" placeholder="First select a department..." autocomplete="off" disabled>
+                  <div class="dropdown-list" id="deptStaffDropdown"></div>
+                </div>
+                <div class="selected-items" id="selectedDeptStaffList"></div>
+              </div>
+              <div class="hint">Leave empty to include all department staff, or select specific staff members</div>
+            </div>
+
             <div class="form-group">
               <label for="dept_cycles">Number of Cycles</label>
               <input type="number" id="dept_cycles" name="cycles" value="6" min="1" max="999" placeholder="6">
@@ -691,6 +704,10 @@
     let selectedComparisonStaff = [];
     let selectedComparisonDepartments = [];
     let recentReports = [];
+    
+    // ✅ NEW: Variables for department staff selection
+    let selectedDepartmentStaff = [];
+    let departmentStaffList = [];
 
     // Initialize dashboard
     async function initDashboard() {
@@ -734,7 +751,60 @@
       }
     }
 
-    // Setup all event listeners
+    // ✅ NEW: Load staff for selected department
+    async function loadDepartmentStaff(departmentId) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/departments/${departmentId}/staff`);
+        const data = await response.json();
+        if (data.success) {
+          departmentStaffList = data.data;
+          selectedDepartmentStaff = []; // Reset selection
+          document.getElementById('dept_staff_search').disabled = false;
+          document.getElementById('dept_staff_search').placeholder = `Search from ${departmentStaffList.length} staff members...`;
+          renderSelectedDepartmentStaff();
+          console.log(`✅ Loaded ${departmentStaffList.length} staff for department ${departmentId}`);
+        }
+      } catch (error) {
+        console.error('Error loading department staff:', error);
+        departmentStaffList = [];
+      }
+    }
+
+    // ✅ NEW: Add staff to department report selection
+    function addDepartmentStaffToSelection(staffId) {
+      if (!selectedDepartmentStaff.includes(staffId)) {
+        selectedDepartmentStaff.push(staffId);
+        renderSelectedDepartmentStaff();
+      }
+    }
+
+    // ✅ NEW: Remove staff from department report selection
+    function removeDepartmentStaffFromSelection(staffId) {
+      selectedDepartmentStaff = selectedDepartmentStaff.filter(id => id !== staffId);
+      renderSelectedDepartmentStaff();
+    }
+
+    // ✅ NEW: Render selected department staff badges
+    function renderSelectedDepartmentStaff() {
+      const container = document.getElementById('selectedDeptStaffList');
+      if (selectedDepartmentStaff.length === 0) {
+        container.innerHTML = '';
+        return;
+      }
+
+      container.innerHTML = selectedDepartmentStaff.map(staffId => {
+        const staff = departmentStaffList.find(s => s.staff_id === staffId);
+        if (!staff) return '';
+        return `
+          <div class="selected-item">
+            <span>${staff.staff_name}</span>
+            <span class="remove" onclick="removeDepartmentStaffFromSelection(${staffId})">×</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ✅ UPDATED: Setup all event listeners
     function setupEventListeners() {
       // Staff select
       setupSearchableSelect('staff_search', 'staffDropdown', 'staff_id', staffList, 
@@ -742,11 +812,18 @@
         (item) => item.staff_id
       );
 
-      // Department select
+      // ⭐ FIXED: Department select with callback to load staff
       setupSearchableSelect('dept_search', 'deptDropdown', 'department_id', departmentList,
         (item) => `${item.department_name} <span class="item-id">(ID: ${item.department_id})</span>`,
-        (item) => item.department_id
+        (item) => item.department_id,
+        async (departmentId) => {
+          // Load staff when department is selected
+          await loadDepartmentStaff(departmentId);
+        }
       );
+
+      // ✅ NEW: Department staff multi-select
+      setupMultiSelect('dept_staff_search', 'deptStaffDropdown', departmentStaffList, false, true);
 
       // Comparison staff multi-select
       setupMultiSelect('comp_staff_search', 'compStaffDropdown', staffList, false);
@@ -761,8 +838,8 @@
       document.getElementById('deptComparisonReportForm').addEventListener('submit', handleDepartmentComparisonReportSubmit);
     }
 
-    // Setup searchable select dropdown
-    function setupSearchableSelect(searchInputId, dropdownId, hiddenInputId, dataList, displayFn, valueFn) {
+    // ⭐ UPDATED: Setup searchable select dropdown (added onSelectCallback parameter)
+    function setupSearchableSelect(searchInputId, dropdownId, hiddenInputId, dataList, displayFn, valueFn, onSelectCallback) {
       const searchInput = document.getElementById(searchInputId);
       const dropdown = document.getElementById(dropdownId);
       const hiddenInput = document.getElementById(hiddenInputId);
@@ -773,6 +850,11 @@
           searchInput.value = item.staff_name || item.department_name;
           hiddenInput.value = valueFn(item);
           dropdown.classList.remove('show');
+          
+          // ⭐ FIXED: Call callback if provided
+          if (onSelectCallback) {
+            onSelectCallback(valueFn(item));
+          }
         });
         dropdown.classList.add('show');
       });
@@ -789,6 +871,11 @@
           searchInput.value = item.staff_name || item.department_name;
           hiddenInput.value = valueFn(item);
           dropdown.classList.remove('show');
+          
+          // ⭐ FIXED: Call callback if provided
+          if (onSelectCallback) {
+            onSelectCallback(valueFn(item));
+          }
         });
       });
 
@@ -823,28 +910,36 @@
       });
     }
 
-    // Setup multi-select for comparison (works for both staff and departments)
-    function setupMultiSelect(searchInputId, dropdownId, dataList, isDepartment = false) {
+    // ✅ UPDATED: Setup multi-select for comparison (works for both staff and departments)
+    function setupMultiSelect(searchInputId, dropdownId, dataList, isDepartment = false, isDeptStaff = false) {
       const searchInput = document.getElementById(searchInputId);
       const dropdown = document.getElementById(dropdownId);
-      const selectedList = document.getElementById(isDepartment ? 'selectedDeptList' : 'selectedStaffList');
-      const selectedArray = isDepartment ? selectedComparisonDepartments : selectedComparisonStaff;
+      const selectedList = document.getElementById(
+        isDeptStaff ? 'selectedDeptStaffList' : 
+        isDepartment ? 'selectedDeptList' : 
+        'selectedStaffList'
+      );
+      const selectedArray = isDeptStaff ? selectedDepartmentStaff :
+                            isDepartment ? selectedComparisonDepartments : 
+                            selectedComparisonStaff;
 
       searchInput.addEventListener('focus', () => {
-        renderMultiSelectDropdown(dropdown, dataList, searchInput.value, isDepartment);
+        const currentDataList = isDeptStaff ? departmentStaffList : dataList;
+        renderMultiSelectDropdown(dropdown, currentDataList, searchInput.value, isDepartment, isDeptStaff);
         dropdown.classList.add('show');
       });
 
       searchInput.addEventListener('input', () => {
         const searchTerm = searchInput.value.toLowerCase();
-        const filtered = dataList.filter(item => {
+        const currentDataList = isDeptStaff ? departmentStaffList : dataList;
+        const filtered = currentDataList.filter(item => {
           const name = (item.staff_name || item.department_name).toLowerCase();
           const id = String(item.staff_id || item.department_id);
           const itemId = item.staff_id || item.department_id;
           const notSelected = !selectedArray.includes(itemId);
           return notSelected && (name.includes(searchTerm) || id.includes(searchTerm));
         });
-        renderMultiSelectDropdown(dropdown, filtered, searchTerm, isDepartment);
+        renderMultiSelectDropdown(dropdown, filtered, searchTerm, isDepartment, isDeptStaff);
       });
 
       document.addEventListener('click', (e) => {
@@ -853,7 +948,7 @@
         }
       });
 
-      function renderMultiSelectDropdown(dropdown, items, searchTerm = '', isDept = false) {
+      function renderMultiSelectDropdown(dropdown, items, searchTerm = '', isDept = false, isDStaff = false) {
         const availableItems = items.filter(item => {
           const itemId = item.staff_id || item.department_id;
           return !selectedArray.includes(itemId);
@@ -875,13 +970,15 @@
         dropdown.querySelectorAll('.dropdown-item').forEach(el => {
           el.addEventListener('click', () => {
             const itemId = parseInt(el.getAttribute('data-value'));
-            if (isDept) {
+            if (isDStaff) {
+              addDepartmentStaffToSelection(itemId);
+            } else if (isDept) {
               addDepartmentToComparison(itemId);
             } else {
               addStaffToComparison(itemId);
             }
             searchInput.value = '';
-            renderMultiSelectDropdown(dropdown, dataList, '', isDept);
+            renderMultiSelectDropdown(dropdown, items, '', isDept, isDStaff);
           });
         });
       }
@@ -1008,7 +1105,7 @@
       }
     }
 
-    // Handle department report submission
+    // ✅ UPDATED: Handle department report submission
     async function handleDepartmentReportSubmit(e) {
       e.preventDefault();
       
@@ -1023,7 +1120,24 @@
       showStatus('dept', 'loading', 'Generating department report...');
 
       try {
-        const response = await fetch(`${API_BASE_URL}/departmentAttendanceReport/${department_id}?cycles=${cycles}`);
+        let response;
+        
+        // If staff are selected, use POST with staff_ids
+        if (selectedDepartmentStaff.length > 0) {
+          response = await fetch(`${API_BASE_URL}/departmentAttendanceReport/${department_id}?cycles=${cycles}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+              staff_ids: selectedDepartmentStaff, 
+              cycles: parseInt(cycles) 
+            })
+          });
+        } else {
+          // Otherwise use GET for all staff
+          response = await fetch(`${API_BASE_URL}/departmentAttendanceReport/${department_id}?cycles=${cycles}`);
+        }
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -1036,7 +1150,12 @@
 
         const dept = departmentList.find(d => d.department_id === parseInt(department_id));
         showStatus('dept', 'success', '✓ Report generated successfully!');
-        addToRecentReports('department', { department_id, department_name: dept?.department_name, cycles });
+        addToRecentReports('department', { 
+          department_id, 
+          department_name: dept?.department_name, 
+          cycles,
+          staff_ids: selectedDepartmentStaff.length > 0 ? [...selectedDepartmentStaff] : null
+        });
       } catch (error) {
         showStatus('dept', 'error', '✗ Error: ' + error.message);
       }
@@ -1172,7 +1291,8 @@
           meta = `${report.params.cycles || 6} cycles`;
         } else if (report.type === 'department') {
           title = `Department Report - ${report.params.department_name || 'ID: ' + report.params.department_id}`;
-          meta = `${report.params.cycles || 6} cycles`;
+          const staffCount = report.params.staff_ids ? report.params.staff_ids.length : 'all';
+          meta = `${staffCount} staff, ${report.params.cycles || 6} cycles`;
         } else if (report.type === 'comparison') {
           title = `Staff Comparison - ${report.params.staff_ids.length} staff members`;
           meta = `${report.params.staff_ids.length} staff, ${report.params.cycles || 6} cycles`;
@@ -1200,6 +1320,7 @@
       }).join('');
     }
 
+    // ✅ UPDATED: Regenerate report function
     function regenerateReport(reportId) {
       const report = recentReports.find(r => r.id === reportId);
       if (!report) return;
@@ -1213,6 +1334,15 @@
         document.getElementById('department_id').value = report.params.department_id;
         document.getElementById('dept_search').value = report.params.department_name || '';
         document.getElementById('dept_cycles').value = report.params.cycles || 6;
+        
+        // ✅ NEW: Restore staff selection if any
+        if (report.params.staff_ids && report.params.staff_ids.length > 0) {
+          loadDepartmentStaff(report.params.department_id).then(() => {
+            selectedDepartmentStaff = [...report.params.staff_ids];
+            renderSelectedDepartmentStaff();
+          });
+        }
+        
         document.getElementById('departmentReportForm').dispatchEvent(new Event('submit'));
       } else if (report.type === 'comparison') {
         selectedComparisonStaff = [...report.params.staff_ids];
