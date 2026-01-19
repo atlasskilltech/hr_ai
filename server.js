@@ -2861,8 +2861,23 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
 
     const workingDaysAnalysis = calculateWorkingDaysAnalysis(finalData.summary_before, finalData.date_wise_status);
 
-    // Calculate overall time data
-    const totalWorkingDays = workingDaysAnalysis.total_days;
+     // ✅ Get values safely (default 0 if undefined/null)
+    const absent   = Number(workingDaysAnalysis.status_breakdown.absent) || 0;
+    const onLeave  = Number(workingDaysAnalysis.status_breakdown.on_leave) || 0;
+    const halfDay  = Number(workingDaysAnalysis.status_breakdown.halfday) || 0;
+
+    // Total working days
+    const totalWorkingDays1 = Number(workingDaysAnalysis.total_days) || 0;
+
+    // ✅ Subtraction logic
+    const totalWorkingDays =
+        totalWorkingDays1 - (absent + onLeave + halfDay);
+
+    // Result
+    console.log("Actual Working Days:", totalWorkingDays1);
+
+    // ✅ ADD - Calculate time analysis
+    //const totalWorkingDays = workingDaysAnalysis.total_days;
     const expectedTotalMinutes = totalWorkingDays * 510; // 8.5 hours = 510 minutes
 
     let overallBeforeMinutes = 0;
@@ -3221,8 +3236,23 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
 
     const workingDaysAnalysis = calculateWorkingDaysAnalysis(departmentData.summary_before, []);
 
-    // Calculate time analysis
-    const totalWorkingDays = workingDaysAnalysis.total_days;
+     // ✅ Get values safely (default 0 if undefined/null)
+    const absent   = Number(workingDaysAnalysis.status_breakdown.absent) || 0;
+    const onLeave  = Number(workingDaysAnalysis.status_breakdown.on_leave) || 0;
+    const halfDay  = Number(workingDaysAnalysis.status_breakdown.halfday) || 0;
+
+    // Total working days
+    const totalWorkingDays1 = Number(workingDaysAnalysis.total_days) || 0;
+
+    // ✅ Subtraction logic
+    const totalWorkingDays =
+        totalWorkingDays1 - (absent + onLeave + halfDay);
+
+    // Result
+    console.log("Actual Working Days:", totalWorkingDays1);
+
+    // ✅ ADD - Calculate time analysis
+    //const totalWorkingDays = workingDaysAnalysis.total_days;
     const expectedTotalMinutes = totalWorkingDays * 510;
 
     const timeAnalysisData = {
@@ -3589,8 +3619,23 @@ app.post("/departmentAttendanceReport/:department_id", async (req, res) => {
 
     const workingDaysAnalysis = calculateWorkingDaysAnalysis(departmentData.summary_before, []);
 
+    // ✅ Get values safely (default 0 if undefined/null)
+    const absent   = Number(workingDaysAnalysis.status_breakdown.absent) || 0;
+    const onLeave  = Number(workingDaysAnalysis.status_breakdown.on_leave) || 0;
+    const halfDay  = Number(workingDaysAnalysis.status_breakdown.halfday) || 0;
+
+    // Total working days
+    const totalWorkingDays1 = Number(workingDaysAnalysis.total_days) || 0;
+
+    // ✅ Subtraction logic
+    const totalWorkingDays =
+        totalWorkingDays1 - (absent + onLeave + halfDay);
+
+    // Result
+    console.log("Actual Working Days:", totalWorkingDays1);
+
     // ✅ ADD - Calculate time analysis
-    const totalWorkingDays = workingDaysAnalysis.total_days;
+    //const totalWorkingDays = workingDaysAnalysis.total_days;
     const expectedTotalMinutes = totalWorkingDays * 510; // 8.5 hours = 510 minutes
 
     const timeAnalysisData = {
