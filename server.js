@@ -151,6 +151,72 @@ function getEnhancedStatus(statusRaw, totalTime) {
 //   return ((totlworkingDays / workingDays) * 100).toFixed(1);
 // }
 
+
+/* =========================================================
+   TIME ANALYSIS SECTION
+========================================================= */
+
+function parseTimeToMinutes(timeStr) {
+  if (!timeStr) return 0;
+  const parts = timeStr.split(':');
+  if (parts.length !== 3) return 0;
+  const hours = parseInt(parts[0]) || 0;
+  const minutes = parseInt(parts[1]) || 0;
+  const seconds = parseInt(parts[2]) || 0;
+  return (hours * 60) + minutes + (seconds / 60);
+}
+
+function minutesToTimeString(totalMinutes) {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = Math.floor(totalMinutes % 60);
+  const seconds = Math.floor(((totalMinutes % 60) - minutes) * 60);
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function buildTimeAnalysisBoxesHTML(timeAnalysisData) {
+  const { expected_time, before_time, after_time, working_days } = timeAnalysisData;
+  
+  const beforeDiff = parseTimeToMinutes(before_time) - parseTimeToMinutes(expected_time);
+  const afterDiff = parseTimeToMinutes(after_time) - parseTimeToMinutes(expected_time);
+  
+  const beforeDiffStr = minutesToTimeString(Math.abs(beforeDiff));
+  const afterDiffStr = minutesToTimeString(Math.abs(afterDiff));
+  
+  const beforeColor = beforeDiff >= 0 ? '#16a34a' : '#dc2626';
+  const afterColor = afterDiff >= 0 ? '#16a34a' : '#dc2626';
+  const beforeSign = beforeDiff >= 0 ? '▲' : '▼';
+  const afterSign = afterDiff >= 0 ? '▲' : '▼';
+  
+  return `
+    <div class="chart-container" style="margin-top: 30px;">
+      <h3 class="section-title">⏱️ Time Analysis Summary</h3>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 20px;">
+        <div style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+          <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">⏰ Expected Total Time</div>
+          <div style="font-size: 36px; font-weight: 700;">${expected_time}</div>
+          <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">${working_days} days × 08:30:00</div>
+        </div>
+        
+        <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+          <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">📊 Before Regularization Time</div>
+          <div style="font-size: 36px; font-weight: 700;">${before_time}</div>
+          <div style="font-size: 12px; opacity: 0.8; margin-top: 4px; background: ${beforeColor}; padding: 4px 8px; border-radius: 4px; display: inline-block;">
+            ${beforeSign} ${beforeDiffStr}
+          </div>
+        </div>
+        
+        <div style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); color: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+          <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">✅ After Regularization Time</div>
+          <div style="font-size: 36px; font-weight: 700;">${after_time}</div>
+          <div style="font-size: 12px; opacity: 0.8; margin-top: 4px; background: ${afterColor}; padding: 4px 8px; border-radius: 4px; display: inline-block;">
+            ${afterSign} ${afterDiffStr}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function calculateAttendancePercent(summary) {
 
   const totalDays =
@@ -2569,13 +2635,16 @@ function buildStaffComparisonHTML(staffDataArray) {
 /* =========================================================
    STAFF REPORT ROUTE - With Dynamic Cycles
 ========================================================= */
+/* =========================================================
+   STAFF REPORT ROUTE - With Dynamic Cycles
+========================================================= */
 app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
   console.log("--------------------------------------------------");
   console.log("➡️ STAFF API HIT:", new Date().toISOString());
 
   try {
     const staff_id = req.params.staff_id;
-    const numCycles = parseInt(req.query.cycles) || 6; // Default 6 cycles
+    const numCycles = parseInt(req.query.cycles) || 6;
     console.log("STEP 0️⃣ Staff ID:", staff_id, "Cycles:", numCycles);
 
     const [rows] = await db.query(
@@ -2605,7 +2674,7 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
       lesswork: 0,
       late_checkin_completed: 0, late_checkin_incomplete: 0,
       clock_out_missing: 0,
-      holiday: 0,non_working: 0 
+      holiday: 0, non_working: 0 
     };
 
     const unchangedTemplate = {
@@ -2649,7 +2718,7 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
       "Late CheckIn (Incomplete)": "late_checkin_incomplete",
       "Clock out Missing": "clock_out_missing",
       "Holiday": "holiday",
-	  "Non Working": "non_working"
+      "Non Working": "non_working"
     };
 
     for (const cycle of cycles) {
@@ -2666,7 +2735,7 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
             WHEN 10 THEN 'Very Less'
             WHEN 12 THEN 'On Leave'
             WHEN 13 THEN 'Holiday'
-			WHEN 15 THEN 'Non Working'   -- ✅ ADD
+            WHEN 15 THEN 'Non Working'
             WHEN 16 THEN 'Late CheckIn'
             ELSE ''
           END AS newStatus,
@@ -2680,12 +2749,14 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
             WHEN 10 THEN 'Very Less'
             WHEN 12 THEN 'On Leave'
             WHEN 13 THEN 'Holiday'
-			WHEN 15 THEN 'Non Working'   -- ✅ ADD
+            WHEN 15 THEN 'Non Working'
             WHEN 16 THEN 'Late CheckIn'
             ELSE ''
           END AS prevStatusRaw,
           
-          dice_staff_attendance.total_time_seven
+          COALESCE(dice_irregularity_staff.dice_pre_total,
+            dice_staff_attendance.total_time) AS total_time_seven,
+          total_time
 
         FROM dice_staff_attendance
         LEFT JOIN dice_irregularity_staff
@@ -2709,7 +2780,6 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
         const beforeRaw = r.prevStatusRaw;
         const afterRaw = r.newStatus;
         
-        // Enhance status with completed/incomplete for Late CheckIn and Clock out Missing
         const beforeEnhanced = beforeRaw ? getEnhancedStatus(beforeRaw, r.total_time_seven) : null;
         const afterEnhanced = getEnhancedStatus(afterRaw, r.total_time_seven);
         
@@ -2721,10 +2791,11 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
           full_date: r.full_date,
           before_status: before,
           after_status: afterEnhanced,
-          total_time: r.total_time_seven
+          total_time: r.total_time_seven,
+          before_total_time: r.total_time_seven,
+          after_total_time: r.total_time
         });
 
-        // Count statuses with enhanced Late CheckIn separately
         if (statusKeyMap[before]) {
           summary.before[statusKeyMap[before]]++;
           finalData.summary_before[statusKeyMap[before]]++;
@@ -2753,7 +2824,7 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
       "Present", "Absent", "On Leave", "HalfDay",
       "Lesswork",
       "Late CheckIn (Completed)", "Late CheckIn (Incomplete)",
-      "Clock out Missing", "Holiday","Non Working"
+      "Clock out Missing", "Holiday", "Non Working"
     ];
 
     const beforeRaw = finalData.summary_before;
@@ -2768,7 +2839,7 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
     const afterCount = [];
 
     for (const label of labels) {
-      const key = label.toLowerCase().replace(/ /g, "_").replace(/[()]/g, "");  // ✅ FIXED
+      const key = label.toLowerCase().replace(/ /g, "_").replace(/[()]/g, "");
 
       const b = beforeRaw[key] || 0;
       const a = afterRaw[key] || 0;
@@ -2788,8 +2859,26 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
       after_count: afterCount
     };
 
-    // ✅ NEW: Calculate working days analysis
     const workingDaysAnalysis = calculateWorkingDaysAnalysis(finalData.summary_before, finalData.date_wise_status);
+
+    // Calculate overall time data
+    const totalWorkingDays = workingDaysAnalysis.total_days;
+    const expectedTotalMinutes = totalWorkingDays * 510; // 8.5 hours = 510 minutes
+
+    let overallBeforeMinutes = 0;
+    let overallAfterMinutes = 0;
+
+    finalData.date_wise_status.forEach(day => {
+      overallBeforeMinutes += parseTimeToMinutes(day.before_total_time);
+      overallAfterMinutes += parseTimeToMinutes(day.after_total_time);
+    });
+
+    const timeAnalysisData = {
+      working_days: totalWorkingDays,
+      expected_time: minutesToTimeString(expectedTotalMinutes),
+      before_time: minutesToTimeString(overallBeforeMinutes),
+      after_time: minutesToTimeString(overallAfterMinutes)
+    };
 
     console.log("STEP 7️⃣ Calling Mistral AI...");
     const ai = await fetch("https://api.mistral.ai/v1/chat/completions", {
@@ -2857,8 +2946,11 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
 
     <div class="section">
       ${buildOverallSummaryMetricsHTML(calculateOverallSummaryData(finalData.summary_before))}
+      ${buildTimeAnalysisBoxesHTML(timeAnalysisData)}
       ${buildOverallSummaryChartHTML(calculateOverallSummaryData(finalData.summary_before), "overallSummary_staff_" + staff_id)}
       ${buildOverallSummaryCycleWiseTableHTML(calculateOverallSummaryCycleWiseData(finalData.cycles))}
+      
+      
       
       ${buildBeforeAnalysisChartHTML(workingDaysAnalysis, "beforeChart_" + staff_id)}
       ${buildBeforeAnalysisTableHTML(workingDaysAnalysis)}
@@ -2903,6 +2995,9 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
 
 /* =========================================================
    DEPARTMENT REPORT ROUTE - With Dynamic Cycles (FIXED)
+========================================================= */
+/* =========================================================
+   DEPARTMENT REPORT ROUTE - With Dynamic Cycles
 ========================================================= */
 app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
   console.log("--------------------------------------------------");
@@ -2966,7 +3061,6 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
       holiday: 0, non_working: 0 
     };
 
-    // ✅ ADD: Helper function to count irregularities
     const countIrregularities = (summary) => {
       return (summary.absent || 0) + 
              (summary.late_checkin_completed || 0) + 
@@ -2985,7 +3079,9 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
         after: structuredClone(statusTemplate)
       })),
       total_irregularities: 0,
-      approved_changes: 0
+      approved_changes: 0,
+      total_before_minutes: 0,
+      total_after_minutes: 0
     };
 
     const staffDataArray = [];
@@ -3003,10 +3099,13 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
           total_irregularities: 0, 
           approved_changes: 0, 
           rejected_changes: 0,
-          irregularities_before: 0,  // ✅ ADD
-          irregularities_after: 0     // ✅ ADD
+          irregularities_before: 0,
+          irregularities_after: 0
         }
       };
+
+      let staffTotalBeforeMinutes = 0;
+      let staffTotalAfterMinutes = 0;
 
       for (let cycleIdx = 0; cycleIdx < cycles.length; cycleIdx++) {
         const cycle = cycles[cycleIdx];
@@ -3039,7 +3138,9 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
               WHEN 16 THEN 'Late CheckIn'
               ELSE ''
             END AS prevStatusRaw,
-            dice_staff_attendance.total_time_seven
+            COALESCE(dice_irregularity_staff.dice_pre_total,
+              dice_staff_attendance.total_time) AS total_time_seven,
+            total_time
           FROM dice_staff_attendance
           LEFT JOIN dice_irregularity_staff
             ON dice_irregularity_staff.dice_irregularity_staff_attendance_id = dice_staff_attendance.staff_attendance_id
@@ -3077,17 +3178,23 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
               staffData.irregularity_analysis.rejected_changes++;
             }
           }
+
+          // Track time
+          staffTotalBeforeMinutes += parseTimeToMinutes(r.total_time_seven);
+          staffTotalAfterMinutes += parseTimeToMinutes(r.total_time);
         }
       }
 
-      // ✅ FIX: Calculate irregularities before and after for each staff member
       staffData.irregularity_analysis.irregularities_before = countIrregularities(staffData.summary_before);
       staffData.irregularity_analysis.irregularities_after = countIrregularities(staffData.summary_after);
+
+      // Accumulate time to department total
+      departmentData.total_before_minutes += staffTotalBeforeMinutes;
+      departmentData.total_after_minutes += staffTotalAfterMinutes;
 
       staffDataArray.push(staffData);
     }
 
-    // Build chart data for department
     const labels = ["Present", "Absent", "On Leave", "HalfDay", "Lesswork",
                     "Late CheckIn (Completed)", "Late CheckIn (Incomplete)", 
                     "Clock out Missing", "Holiday", "Non Working"];
@@ -3112,8 +3219,18 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
 
     const chartData = { labels, before: beforeArr, after: afterArr, before_count: beforeCount, after_count: afterCount };
 
-    // ✅ NEW: Calculate working days analysis
     const workingDaysAnalysis = calculateWorkingDaysAnalysis(departmentData.summary_before, []);
+
+    // Calculate time analysis
+    const totalWorkingDays = workingDaysAnalysis.total_days;
+    const expectedTotalMinutes = totalWorkingDays * 510;
+
+    const timeAnalysisData = {
+      working_days: totalWorkingDays,
+      expected_time: minutesToTimeString(expectedTotalMinutes),
+      before_time: minutesToTimeString(departmentData.total_before_minutes),
+      after_time: minutesToTimeString(departmentData.total_after_minutes)
+    };
 
     console.log("Calling Mistral AI for department analysis...");
     const ai = await fetch("https://api.mistral.ai/v1/chat/completions", {
@@ -3180,11 +3297,12 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
     </div>
 
     <div class="section">
-      
-
       ${buildOverallSummaryMetricsHTML(calculateOverallSummaryData(departmentData.summary_before))}
+      ${buildTimeAnalysisBoxesHTML(timeAnalysisData)}
       ${buildOverallSummaryChartHTML(calculateOverallSummaryData(departmentData.summary_before), "overallSummary_dept_" + department_id)}
       ${buildOverallSummaryCycleWiseTableHTML(calculateOverallSummaryCycleWiseData(departmentData.cycles))}
+
+      
 
       ${buildBeforeAnalysisChartHTML(workingDaysAnalysis, "beforeChart_dept_" + department_id)}
       ${buildBeforeAnalysisTableHTML(workingDaysAnalysis)}
@@ -3224,6 +3342,9 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
   }
 });
 
+/* =========================================================
+   DEPARTMENT REPORT WITH STAFF SELECTION - With Dynamic Cycles
+========================================================= */
 /* =========================================================
    DEPARTMENT REPORT WITH STAFF SELECTION - With Dynamic Cycles
 ========================================================= */
@@ -3325,7 +3446,9 @@ app.post("/departmentAttendanceReport/:department_id", async (req, res) => {
         after: structuredClone(statusTemplate)
       })),
       total_irregularities: 0,
-      approved_changes: 0
+      approved_changes: 0,
+      total_before_minutes: 0,  // ✅ ADD
+      total_after_minutes: 0    // ✅ ADD
     };
 
     const staffDataArray = [];
@@ -3347,6 +3470,10 @@ app.post("/departmentAttendanceReport/:department_id", async (req, res) => {
           irregularities_after: 0
         }
       };
+
+      // ✅ ADD - Track time for each staff member
+      let staffTotalBeforeMinutes = 0;
+      let staffTotalAfterMinutes = 0;
 
       for (let cycleIdx = 0; cycleIdx < cycles.length; cycleIdx++) {
         const cycle = cycles[cycleIdx];
@@ -3379,7 +3506,9 @@ app.post("/departmentAttendanceReport/:department_id", async (req, res) => {
               WHEN 16 THEN 'Late CheckIn'
               ELSE ''
             END AS prevStatusRaw,
-            dice_staff_attendance.total_time_seven
+            COALESCE(dice_irregularity_staff.dice_pre_total,
+              dice_staff_attendance.total_time) AS total_time_seven,
+            total_time
           FROM dice_staff_attendance
           LEFT JOIN dice_irregularity_staff
             ON dice_irregularity_staff.dice_irregularity_staff_attendance_id = dice_staff_attendance.staff_attendance_id
@@ -3417,11 +3546,19 @@ app.post("/departmentAttendanceReport/:department_id", async (req, res) => {
               staffData.irregularity_analysis.rejected_changes++;
             }
           }
+
+          // ✅ ADD - Track time
+          staffTotalBeforeMinutes += parseTimeToMinutes(r.total_time_seven);
+          staffTotalAfterMinutes += parseTimeToMinutes(r.total_time);
         }
       }
 
       staffData.irregularity_analysis.irregularities_before = countIrregularities(staffData.summary_before);
       staffData.irregularity_analysis.irregularities_after = countIrregularities(staffData.summary_after);
+
+      // ✅ ADD - Accumulate time to department total
+      departmentData.total_before_minutes += staffTotalBeforeMinutes;
+      departmentData.total_after_minutes += staffTotalAfterMinutes;
 
       staffDataArray.push(staffData);
     }
@@ -3451,6 +3588,17 @@ app.post("/departmentAttendanceReport/:department_id", async (req, res) => {
     const chartData = { labels, before: beforeArr, after: afterArr, before_count: beforeCount, after_count: afterCount };
 
     const workingDaysAnalysis = calculateWorkingDaysAnalysis(departmentData.summary_before, []);
+
+    // ✅ ADD - Calculate time analysis
+    const totalWorkingDays = workingDaysAnalysis.total_days;
+    const expectedTotalMinutes = totalWorkingDays * 510; // 8.5 hours = 510 minutes
+
+    const timeAnalysisData = {
+      working_days: totalWorkingDays,
+      expected_time: minutesToTimeString(expectedTotalMinutes),
+      before_time: minutesToTimeString(departmentData.total_before_minutes),
+      after_time: minutesToTimeString(departmentData.total_after_minutes)
+    };
 
     console.log("Calling Mistral AI for department analysis...");
     const ai = await fetch("https://api.mistral.ai/v1/chat/completions", {
@@ -3527,8 +3675,11 @@ app.post("/departmentAttendanceReport/:department_id", async (req, res) => {
       ${staffSelectionInfo}
 
       ${buildOverallSummaryMetricsHTML(calculateOverallSummaryData(departmentData.summary_before))}
+      ${buildTimeAnalysisBoxesHTML(timeAnalysisData)}
       ${buildOverallSummaryChartHTML(calculateOverallSummaryData(departmentData.summary_before), "overallSummary_dept_" + department_id)}
       ${buildOverallSummaryCycleWiseTableHTML(calculateOverallSummaryCycleWiseData(departmentData.cycles))}
+
+      
 
       ${buildBeforeAnalysisChartHTML(workingDaysAnalysis, "beforeChart_dept_" + department_id)}
       ${buildBeforeAnalysisTableHTML(workingDaysAnalysis)}
@@ -3693,7 +3844,9 @@ app.post("/departmentComparisonReport", async (req, res) => {
                 WHEN 16 THEN 'Late CheckIn'
                 ELSE ''
               END AS prevStatusRaw,
-              dice_staff_attendance.total_time_seven
+               COALESCE(dice_irregularity_staff.dice_pre_total,
+         dice_staff_attendance.total_time) AS total_time_seven,
+         total_time
             FROM dice_staff_attendance
             LEFT JOIN dice_irregularity_staff
               ON dice_irregularity_staff.dice_irregularity_staff_attendance_id = dice_staff_attendance.staff_attendance_id
@@ -3955,7 +4108,10 @@ app.post("/staffComparisonReport", async (req, res) => {
               WHEN 16 THEN 'Late CheckIn'
               ELSE ''
             END AS prevStatusRaw,
-            dice_staff_attendance.total_time_seven
+            
+            COALESCE(dice_irregularity_staff.dice_pre_total,
+         dice_staff_attendance.total_time) AS total_time_seven,
+         total_time
           FROM dice_staff_attendance
           LEFT JOIN dice_irregularity_staff
             ON dice_irregularity_staff.dice_irregularity_staff_attendance_id = dice_staff_attendance.staff_attendance_id
