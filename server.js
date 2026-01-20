@@ -2732,18 +2732,29 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
         SELECT 
           DATE_FORMAT(attendance_date,'%e %b') AS attendance_date,
           attendance_date AS full_date,
-          CASE attendance_status
-            WHEN 5 THEN 'Present'
-            WHEN 6 THEN 'Absent'
-            WHEN 7 THEN 'Lesswork'
-            WHEN 8 THEN 'Clock out Missing'
-            WHEN 9 THEN 'HalfDay'
-            WHEN 10 THEN 'Very Less'
-            WHEN 12 THEN 'On Leave'
-            WHEN 13 THEN 'Holiday'
-            WHEN 15 THEN 'Non Working'
-            WHEN 16 THEN 'Late CheckIn'
-            ELSE ''
+          CASE 
+        WHEN attendance_status = 12
+             AND login_time IS NOT NULL
+             AND logout_time IS NOT NULL
+             AND login_time <> '0000-00-00 00:00:00'
+             AND logout_time <> '0000-00-00 00:00:00'
+        THEN 'HalfDay'
+
+        
+        WHEN attendance_status = 12
+        THEN 'On Leave'
+
+        
+        WHEN attendance_status = 5 THEN 'Present'
+        WHEN attendance_status = 6 THEN 'Absent'
+        WHEN attendance_status = 7 THEN 'Lesswork'
+        WHEN attendance_status = 8 THEN 'Clock out Missing'
+        WHEN attendance_status = 9 THEN 'HalfDay'
+        WHEN attendance_status = 10 THEN 'Very Less'
+        WHEN attendance_status = 13 THEN 'Holiday'
+        WHEN attendance_status = 15 THEN 'Non Working'
+        WHEN attendance_status = 16 THEN 'Late CheckIn'
+        ELSE ''
           END AS newStatus,
 
           CASE dice_irregularity_staff_prev_attendanc_status
@@ -3136,18 +3147,28 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
 
         const [records] = await db.query(`
           SELECT 
-            CASE attendance_status
-              WHEN 5 THEN 'Present'
-              WHEN 6 THEN 'Absent'
-              WHEN 7 THEN 'Lesswork'
-              WHEN 8 THEN 'Clock out Missing'
-              WHEN 9 THEN 'HalfDay'
-              WHEN 10 THEN 'Very Less'
-              WHEN 12 THEN 'On Leave'
-              WHEN 13 THEN 'Holiday'
-              WHEN 15 THEN 'Non Working'
-              WHEN 16 THEN 'Late CheckIn'
-              ELSE ''
+            CASE WHEN attendance_status = 12
+             AND login_time IS NOT NULL
+             AND logout_time IS NOT NULL
+             AND login_time <> '0000-00-00 00:00:00'
+             AND logout_time <> '0000-00-00 00:00:00'
+        THEN 'HalfDay'
+
+        
+        WHEN attendance_status = 12
+        THEN 'On Leave'
+
+        
+        WHEN attendance_status = 5 THEN 'Present'
+        WHEN attendance_status = 6 THEN 'Absent'
+        WHEN attendance_status = 7 THEN 'Lesswork'
+        WHEN attendance_status = 8 THEN 'Clock out Missing'
+        WHEN attendance_status = 9 THEN 'HalfDay'
+        WHEN attendance_status = 10 THEN 'Very Less'
+        WHEN attendance_status = 13 THEN 'Holiday'
+        WHEN attendance_status = 15 THEN 'Non Working'
+        WHEN attendance_status = 16 THEN 'Late CheckIn'
+        ELSE ''
             END AS newStatus,
             CASE dice_irregularity_staff_prev_attendanc_status
               WHEN 5 THEN 'Present'
@@ -3521,18 +3542,28 @@ app.post("/departmentAttendanceReport/:department_id", async (req, res) => {
 
         const [records] = await db.query(`
           SELECT 
-            CASE attendance_status
-              WHEN 5 THEN 'Present'
-              WHEN 6 THEN 'Absent'
-              WHEN 7 THEN 'Lesswork'
-              WHEN 8 THEN 'Clock out Missing'
-              WHEN 9 THEN 'HalfDay'
-              WHEN 10 THEN 'Very Less'
-              WHEN 12 THEN 'On Leave'
-              WHEN 13 THEN 'Holiday'
-              WHEN 15 THEN 'Non Working'
-              WHEN 16 THEN 'Late CheckIn'
-              ELSE ''
+            CASE WHEN attendance_status = 12
+             AND login_time IS NOT NULL
+             AND logout_time IS NOT NULL
+             AND login_time <> '0000-00-00 00:00:00'
+             AND logout_time <> '0000-00-00 00:00:00'
+        THEN 'HalfDay'
+
+        
+        WHEN attendance_status = 12
+        THEN 'On Leave'
+
+        
+        WHEN attendance_status = 5 THEN 'Present'
+        WHEN attendance_status = 6 THEN 'Absent'
+        WHEN attendance_status = 7 THEN 'Lesswork'
+        WHEN attendance_status = 8 THEN 'Clock out Missing'
+        WHEN attendance_status = 9 THEN 'HalfDay'
+        WHEN attendance_status = 10 THEN 'Very Less'
+        WHEN attendance_status = 13 THEN 'Holiday'
+        WHEN attendance_status = 15 THEN 'Non Working'
+        WHEN attendance_status = 16 THEN 'Late CheckIn'
+        ELSE ''
             END AS newStatus,
             CASE dice_irregularity_staff_prev_attendanc_status
               WHEN 5 THEN 'Present'
@@ -3876,18 +3907,28 @@ app.post("/departmentComparisonReport", async (req, res) => {
 
           const [records] = await db.query(`
             SELECT 
-              CASE attendance_status
-                WHEN 5 THEN 'Present'
-                WHEN 6 THEN 'Absent'
-                WHEN 7 THEN 'Lesswork'
-                WHEN 8 THEN 'Clock out Missing'
-                WHEN 9 THEN 'HalfDay'
-                WHEN 10 THEN 'Very Less'
-                WHEN 12 THEN 'On Leave'
-                WHEN 13 THEN 'Holiday'
-				WHEN 15 THEN 'Non Working'   -- ✅ ADD
-                WHEN 16 THEN 'Late CheckIn'
-                ELSE ''
+              CASE WHEN attendance_status = 12
+             AND login_time IS NOT NULL
+             AND logout_time IS NOT NULL
+             AND login_time <> '0000-00-00 00:00:00'
+             AND logout_time <> '0000-00-00 00:00:00'
+        THEN 'HalfDay'
+
+        
+        WHEN attendance_status = 12
+        THEN 'On Leave'
+
+        
+        WHEN attendance_status = 5 THEN 'Present'
+        WHEN attendance_status = 6 THEN 'Absent'
+        WHEN attendance_status = 7 THEN 'Lesswork'
+        WHEN attendance_status = 8 THEN 'Clock out Missing'
+        WHEN attendance_status = 9 THEN 'HalfDay'
+        WHEN attendance_status = 10 THEN 'Very Less'
+        WHEN attendance_status = 13 THEN 'Holiday'
+        WHEN attendance_status = 15 THEN 'Non Working'
+        WHEN attendance_status = 16 THEN 'Late CheckIn'
+        ELSE ''
               END AS newStatus,
               CASE dice_irregularity_staff_prev_attendanc_status
                 WHEN 5 THEN 'Present'
@@ -4140,18 +4181,28 @@ app.post("/staffComparisonReport", async (req, res) => {
 
         const [records] = await db.query(`
           SELECT 
-            CASE attendance_status
-              WHEN 5 THEN 'Present'
-              WHEN 6 THEN 'Absent'
-              WHEN 7 THEN 'Lesswork'
-              WHEN 8 THEN 'Clock out Missing'
-              WHEN 9 THEN 'HalfDay'
-              WHEN 10 THEN 'Very Less'
-              WHEN 12 THEN 'On Leave'
-              WHEN 13 THEN 'Holiday'
-			  WHEN 15 THEN 'Non Working'   -- ✅ ADD
-              WHEN 16 THEN 'Late CheckIn'
-              ELSE ''
+            CASE WHEN attendance_status = 12
+             AND login_time IS NOT NULL
+             AND logout_time IS NOT NULL
+             AND login_time <> '0000-00-00 00:00:00'
+             AND logout_time <> '0000-00-00 00:00:00'
+        THEN 'HalfDay'
+
+        
+        WHEN attendance_status = 12
+        THEN 'On Leave'
+
+        
+        WHEN attendance_status = 5 THEN 'Present'
+        WHEN attendance_status = 6 THEN 'Absent'
+        WHEN attendance_status = 7 THEN 'Lesswork'
+        WHEN attendance_status = 8 THEN 'Clock out Missing'
+        WHEN attendance_status = 9 THEN 'HalfDay'
+        WHEN attendance_status = 10 THEN 'Very Less'
+        WHEN attendance_status = 13 THEN 'Holiday'
+        WHEN attendance_status = 15 THEN 'Non Working'
+        WHEN attendance_status = 16 THEN 'Late CheckIn'
+        ELSE ''
             END AS newStatus,
             CASE dice_irregularity_staff_prev_attendanc_status
               WHEN 5 THEN 'Present'
