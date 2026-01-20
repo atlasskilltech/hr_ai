@@ -625,10 +625,16 @@ function calculateOverallSummaryData(summary_before, cycles = null) {
     non_working_days: summary_before.non_working || 0,
     total_working_days: 0,
     absence: summary_before.absent || 0,
-    leave: summary_before.on_leave || 0,
+    leave: (summary_before.on_leave || 0) + (summary_before.halfday * 0.5 || 0),
     irregularities: 0,
     actual_present: 0
   };
+
+  //console.log("summary_before",summary_before.on_leave);
+  //console.log("summary_before",summary_before);
+
+  //console.log("summaryData",summaryData);
+
 
   summaryData.total_working_days = summaryData.total_days - summaryData.holidays - summaryData.non_working_days;
   
@@ -2879,7 +2885,9 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
 
     // ✅ ADD - Calculate time analysis
     //const totalWorkingDays = workingDaysAnalysis.total_days;
-    const expectedTotalMinutes = totalWorkingDays * 510; // 8.5 hours = 510 minutes
+    //const expectedTotalMinutes = totalWorkingDays * 510; // 8.5 hours = 510 minutes
+
+    const expectedTotalMinutes = totalWorkingDays * 510 - (  halfDay * 0.5 ) * 510 ; // 8.5 hours = 510 minutes
 
     let overallBeforeMinutes = 0;
     let overallAfterMinutes = 0;
@@ -3254,7 +3262,9 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
 
     // ✅ ADD - Calculate time analysis
     //const totalWorkingDays = workingDaysAnalysis.total_days;
-    const expectedTotalMinutes = totalWorkingDays * 510;
+    //const expectedTotalMinutes = totalWorkingDays * 510;
+
+    const expectedTotalMinutes = totalWorkingDays * 510 - (  halfDay * 0.5 ) * 510 ; // 8.5 hours = 510 minutes
 
     const timeAnalysisData = {
       working_days: totalWorkingDays,
@@ -3637,7 +3647,9 @@ app.post("/departmentAttendanceReport/:department_id", async (req, res) => {
 
     // ✅ ADD - Calculate time analysis
     //const totalWorkingDays = workingDaysAnalysis.total_days;
-    const expectedTotalMinutes = totalWorkingDays * 510; // 8.5 hours = 510 minutes
+    //const expectedTotalMinutes = totalWorkingDays * 510; // 8.5 hours = 510 minutes
+
+    const expectedTotalMinutes = totalWorkingDays * 510 - (  halfDay * 0.5 ) * 510 ; // 8.5 hours = 510 minutes
 
     const timeAnalysisData = {
       working_days: totalWorkingDays,
