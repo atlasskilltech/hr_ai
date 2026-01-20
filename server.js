@@ -2860,7 +2860,8 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
     };
 
     const workingDaysAnalysis = calculateWorkingDaysAnalysis(finalData.summary_before, finalData.date_wise_status);
-
+     
+    console.log(workingDaysAnalysis);
      // ✅ Get values safely (default 0 if undefined/null)
     const absent   = Number(workingDaysAnalysis.status_breakdown.absent) || 0;
     const onLeave  = Number(workingDaysAnalysis.status_breakdown.on_leave) || 0;
@@ -2871,7 +2872,7 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
 
     // ✅ Subtraction logic
     const totalWorkingDays =
-        totalWorkingDays1 - (absent + onLeave + halfDay);
+        totalWorkingDays1 - (absent + onLeave + halfDay*0.5);
 
     // Result
     console.log("Actual Working Days:", totalWorkingDays1);
@@ -3246,7 +3247,7 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
 
     // ✅ Subtraction logic
     const totalWorkingDays =
-        totalWorkingDays1 - (absent + onLeave + halfDay);
+        totalWorkingDays1 - (absent + onLeave + halfDay*0.5);
 
     // Result
     console.log("Actual Working Days:", totalWorkingDays1);
@@ -3629,7 +3630,7 @@ app.post("/departmentAttendanceReport/:department_id", async (req, res) => {
 
     // ✅ Subtraction logic
     const totalWorkingDays =
-        totalWorkingDays1 - (absent + onLeave + halfDay);
+        totalWorkingDays1 - (absent + onLeave + halfDay*0.5);
 
     // Result
     console.log("Actual Working Days:", totalWorkingDays1);
