@@ -8,6 +8,7 @@ const systemPrompt = fs.readFileSync("./systemPromptSingle.txt", "utf8");
 
 const app = express();
 app.use(express.json({ limit: "10mb" }));
+app.use(express.static(__dirname)); // Serve static files (CSS, JS, images, etc.)
 
 function now() {
   return Number(process.hrtime.bigint() / 1000000n);
@@ -21,8 +22,8 @@ const db = mysql.createPool({
   connectionLimit: 10
 });
 
-console.log("✅ Server booting...");
-console.log("✅ Prompt loaded. Length:", systemPrompt.length);
+console.log("Server booting...");
+console.log("Prompt loaded. Length:", systemPrompt.length);
 
 /* =========================================================
    DASHBOARD & DATA API ROUTES
@@ -71,6 +72,37 @@ app.get("/api/departments/list", async (req, res) => {
     res.json({ success: true, data: departments });
   } catch (error) {
     console.error("Error fetching departments:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: Get cycles from database
+app.get("/api/cycles/list", async (req, res) => {
+  try {
+    const [cycles] = await db.query(`
+      SELECT
+        cycle_id,
+        cycle_quarter_id,
+        cycle_start_date,
+        cycle_end_date,
+        cycle_month_name,
+        cycle_month_no,
+        cycle_year_no,
+        cycle_closing_date,
+        cycle_closing_date_manager,
+        cycle_added_on,
+        updated_at
+      FROM
+        pay_cycle_master
+      WHERE
+        cycle_end_date < CURDATE()
+      ORDER BY
+        cycle_end_date DESC
+      LIMIT 12
+    `);
+    res.json({ success: true, data: cycles });
+  } catch (error) {
+    console.error("Error fetching cycles:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -192,13 +224,13 @@ function buildTimeAnalysisBoxesHTML(timeAnalysisData) {
       <h3 class="section-title">⏱️ Time Analysis Summary</h3>
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 20px;">
         <div style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-          <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">⏰ Expected Total Time</div>
+          <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">🎯 Expected Total Time</div>
           <div style="font-size: 36px; font-weight: 700;">${expected_time}</div>
           <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">${working_days} days × 08:30:00</div>
         </div>
         
         <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-          <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">📊 Before Regularization Time</div>
+          <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">📊Before Regularization Time</div>
           <div style="font-size: 36px; font-weight: 700;">${before_time}</div>
           <div style="font-size: 12px; opacity: 0.8; margin-top: 4px; background: ${beforeColor}; padding: 4px 8px; border-radius: 4px; display: inline-block;">
             ${beforeSign} ${beforeDiffStr}
@@ -270,6 +302,60 @@ function buildCycles(numCycles = 6) {
 }
 
 /* =========================================================
+   BUILD CYCLES FROM DATABASE DATA
+========================================================= */
+async function buildCyclesFromDatabase(cycle_ids) {
+  try {
+    // If no cycle_ids provided, return empty array
+    if (!cycle_ids || cycle_ids.length === 0) {
+      return [];
+    }
+
+    // Create placeholders for SQL IN clause
+    const placeholders = cycle_ids.map(() => '?').join(',');
+    
+    const [cycles] = await db.query(`
+      SELECT
+        cycle_id,
+        cycle_quarter_id,
+        cycle_start_date,
+        cycle_end_date,
+        cycle_month_name,
+        cycle_month_no,
+        cycle_year_no,
+        cycle_closing_date,
+        cycle_closing_date_manager
+      FROM
+        pay_cycle_master
+      WHERE
+        cycle_id IN (${placeholders})
+      ORDER BY
+        cycle_end_date DESC
+    `, cycle_ids);
+
+    // Format cycles to match expected structure
+    return cycles.map(cycle => {
+      const startDate = new Date(cycle.cycle_start_date);
+      const endDate = new Date(cycle.cycle_end_date);
+      
+      return {
+        cycle_id: cycle.cycle_id,
+        start: cycle.cycle_start_date,
+        end: cycle.cycle_end_date,
+        pay_cycle_id: cycle.cycle_id,
+        label: `${startDate.getDate()} ${startDate.toLocaleString("en", {month: "short"})} ${startDate.getFullYear()} To ${endDate.getDate()} ${endDate.toLocaleString("en", {month: "short"})} ${endDate.getFullYear()}`,
+        month_name: cycle.cycle_month_name,
+        month_no: cycle.cycle_month_no,
+        year_no: cycle.cycle_year_no
+      };
+    });
+  } catch (error) {
+    console.error("Error building cycles from database:", error);
+    return [];
+  }
+}
+
+/* =========================================================
    NEW: BEFORE REGULARIZATION ANALYSIS - HELPER FUNCTIONS
 ========================================================= */
 
@@ -312,7 +398,7 @@ function calculateWorkingDaysAnalysis(summary, dateWiseData) {
 function buildOverallSummaryMetricsHTML(summaryData) {
   return `
     <div class="chart-container">
-      <h3 class="section-title">📈 Overall Summary - Before Regularization</h3>
+      <h3 class="section-title">📆 Overall Summary - Before Regularization</h3>
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-top: 20px;">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
           <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">📅 Total Days</div>
@@ -397,7 +483,7 @@ function buildOverallSummaryChartHTML(summaryData, canvasId = "overallSummaryCha
 
   return `
     <div class="chart-container">
-      <h3 class="section-title">📊 Overall Summary - Visual Breakdown</h3>
+      <h3 class="section-title">📊Overall Summary - Visual Breakdown</h3>
       <div class="chart-wrapper">
         <canvas id="${canvasId}"></canvas>
       </div>
@@ -564,7 +650,7 @@ function buildOverallSummaryCycleWiseTableHTML(cyclesData) {
 
   // Add completion rate row
   bodyRows += `<tr style="background: #dbeafe; font-weight: 600;">
-    <td style="text-align: left;"><strong>📊 Completion Rate (%)</strong></td>`;
+    <td style="text-align: left;"><strong>📊Completion Rate (%)</strong></td>`;
   
   cyclesData.forEach(cycle => {
     const percentage = cycle.total_working_days > 0 ? 
@@ -694,7 +780,7 @@ function buildBeforeAnalysisChartHTML(workingDaysAnalysis, canvasId = "beforeAna
 
   return `
     <div class="chart-container">
-      <h3 class="section-title">📊 Before Regularization - Status Distribution</h3>
+      <h3 class="section-title">📊Before Regularization - Status Distribution</h3>
       <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
           <div style="text-align: center;">
@@ -1016,383 +1102,13 @@ function buildBeforeRegularizationCycleWiseTableHTML(finalData) {
 ========================================================= */
 
 function getModernStyles() {
-  return `
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-      
-      body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 40px 20px;
-        color: #1f2937;
-      }
-      
-      .report-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        background: white;
-        border-radius: 20px;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        overflow: hidden;
-      }
-      
-      .report-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 40px;
-        text-align: center;
-      }
-      
-      .report-header h1 {
-        font-size: 32px;
-        font-weight: 700;
-        margin-bottom: 10px;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-      }
-      
-      .report-header .subtitle {
-        font-size: 16px;
-        opacity: 0.9;
-      }
-      
-      .staff-info, .department-info {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 20px;
-        padding: 30px 40px;
-        background: #f8fafc;
-        border-bottom: 2px solid #e2e8f0;
-      }
-      
-      .info-card {
-        background: white;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        border-left: 4px solid #667eea;
-      }
-      
-      .info-card .label {
-        font-size: 12px;
-        text-transform: uppercase;
-        color: #64748b;
-        font-weight: 600;
-        margin-bottom: 8px;
-        letter-spacing: 0.5px;
-      }
-      
-      .info-card .value {
-        font-size: 18px;
-        font-weight: 700;
-        color: #1e293b;
-      }
-      
-      .section {
-        padding: 40px;
-      }
-      
-      .section-title {
-        font-size: 24px;
-        font-weight: 700;
-        color: #1e293b;
-        margin-bottom: 24px;
-        padding-bottom: 12px;
-        border-bottom: 3px solid #667eea;
-        display: inline-block;
-      }
-      
-      .chart-container {
-        background: white;
-        padding: 30px;
-        border-radius: 16px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        margin-bottom: 30px;
-      }
-      
-      .chart-wrapper {
-        position: relative;
-        height: 400px;
-        margin-top: 20px;
-      }
-      
-      .table-container {
-        overflow-x: auto;
-        background: white;
-        border-radius: 16px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        margin-bottom: 30px;
-      }
-      
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 14px;
-      }
-      
-      thead {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-      }
-      
-      thead th {
-        padding: 16px;
-        text-align: center;
-        font-weight: 600;
-        text-transform: uppercase;
-        font-size: 12px;
-        letter-spacing: 0.5px;
-      }
-      
-      tbody tr {
-        border-bottom: 1px solid #e2e8f0;
-        transition: background-color 0.2s;
-      }
-      
-      tbody tr:hover {
-        background-color: #f8fafc;
-      }
-      
-      tbody td {
-        padding: 16px;
-        text-align: center;
-      }
-      
-      tbody tr td:first-child {
-        font-weight: 600;
-        text-align: left;
-        color: #475569;
-        background: #f8fafc;
-      }
-      
-      .value-before {
-        color: #dc2626;
-        font-weight: 700;
-        background: #fee2e2;
-        padding: 6px 12px;
-        border-radius: 6px;
-        display: inline-block;
-      }
-      
-      .value-after {
-        color: #16a34a;
-        font-weight: 700;
-        background: #dcfce7;
-        padding: 6px 12px;
-        border-radius: 6px;
-        display: inline-block;
-      }
-
-      .comparison-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 20px;
-        margin-top: 30px;
-      }
-
-      .staff-card {
-        background: white;
-        border-radius: 12px;
-        padding: 24px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        border-top: 4px solid #667eea;
-        transition: transform 0.2s, box-shadow 0.2s;
-      }
-
-      .staff-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.12);
-      }
-
-      .staff-card h4 {
-        font-size: 18px;
-        color: #1e293b;
-        margin-bottom: 16px;
-        padding-bottom: 12px;
-        border-bottom: 2px solid #e2e8f0;
-      }
-
-      .stat-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 8px 0;
-        font-size: 14px;
-      }
-
-      .stat-label {
-        color: #64748b;
-        font-weight: 500;
-      }
-
-      .stat-value {
-        font-weight: 700;
-        color: #1e293b;
-      }
-
-      .stat-value.positive {
-        color: #16a34a;
-      }
-
-      .stat-value.negative {
-        color: #dc2626;
-      }
-
-      .stat-value-group {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-      }
-
-      .before-after-badge {
-        display: inline-block;
-        padding: 4px 8px;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: 600;
-      }
-
-      .before-after-badge.before {
-        background: #fee2e2;
-        color: #dc2626;
-      }
-
-      .before-after-badge.after {
-        background: #dcfce7;
-        color: #16a34a;
-      }
-
-      .metric-badge {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-        margin-top: 12px;
-      }
-
-      .metric-badge.excellent {
-        background: #dcfce7;
-        color: #16a34a;
-      }
-
-      .metric-badge.good {
-        background: #dbeafe;
-        color: #2563eb;
-      }
-
-      .metric-badge.warning {
-        background: #fef3c7;
-        color: #d97706;
-      }
-
-      .metric-badge.poor {
-        background: #fee2e2;
-        color: #dc2626;
-      }
-
-      .status-changed {
-        background: #fef3c7 !important;
-      }
-
-      .status-changed:hover {
-        background: #fde68a !important;
-      }
-
-      tbody tr.status-changed td:first-child {
-        background: #fef3c7;
-      }
-      
-      /* Compact table for comparisons */
-      .table-container table thead th {
-        white-space: nowrap;
-        min-width: 80px;
-      }
-
-      .table-container table tbody td {
-        white-space: nowrap;
-      }
-      
-      .ai-analysis {
-        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-        padding: 30px;
-        border-radius: 16px;
-        border-left: 6px solid #0284c7;
-        margin-top: 30px;
-      }
-      
-      .ai-analysis h3 {
-        color: #0c4a6e;
-        margin-bottom: 16px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-      
-      .ai-analysis h3:before {
-        content: "🤖";
-        font-size: 24px;
-      }
-      
-      .report-footer {
-        text-align: center;
-        padding: 30px;
-        background: #f8fafc;
-        color: #64748b;
-        font-size: 14px;
-        border-top: 2px solid #e2e8f0;
-      }
-
-      .department-summary {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 20px;
-        margin-bottom: 30px;
-      }
-
-      .summary-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 24px;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        text-align: center;
-      }
-
-      .summary-card .number {
-        font-size: 36px;
-        font-weight: 700;
-        margin-bottom: 8px;
-      }
-
-      .summary-card .label {
-        font-size: 14px;
-        opacity: 0.9;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-      
-      @media print {
-        body {
-          background: white;
-          padding: 0;
-        }
-        
-        .report-container {
-          box-shadow: none;
-          border-radius: 0;
-        }
-      }
-    </style>
-  `;
+  return '<link rel="stylesheet" href="/styles.css">';
 }
 
 function buildModernGraphHTML(chartData, canvasId = "attendanceGraph") {
   return `
     <div class="chart-container">
-      <h3 class="section-title">📊 Attendance Trend Overview</h3>
+      <h3 class="section-title">📊Attendance Trend Overview</h3>
       <div class="chart-wrapper">
         <canvas id="${canvasId}"></canvas>
       </div>
@@ -1971,7 +1687,7 @@ function buildDepartmentComparisonCycleWiseTableHTML(departmentDataArray) {
 
   return `
     <div class="table-container">
-      <h3 class="section-title">📊 Cycle-wise Department Comparison</h3>
+      <h3 class="section-title">📊Cycle-wise Department Comparison</h3>
       <p style="color: #64748b; margin-bottom: 15px;">
         Detailed attendance breakdown for each department across all cycles
       </p>
@@ -2094,7 +1810,7 @@ function buildDateWiseStatusTableHTML(dateWiseData) {
 
   return `
     <div class="table-container">
-      <h3 class="section-title">📆 Date-wise Status Details</h3>
+      <h3 class="section-title">📄 Date-wise Status Details</h3>
       <p style="color: #64748b; margin-bottom: 10px; font-size: 13px;">
         <strong>Note:</strong> "Late CheckIn (Completed)" means working hours ≥ 08:30:00. Time shown in brackets [HH:MM:SS].
       </p>
@@ -2233,7 +1949,7 @@ function buildDepartmentStaffBeforeAfterTableHTML(staffDataArray) {
 
   return `
     <div class="table-container">
-      <h3 class="section-title">📊 Staff-wise Before & After Analysis</h3>
+      <h3 class="section-title">📊Staff-wise Before & After Analysis</h3>
       <p style="color: #64748b; margin-bottom: 20px;">
         Detailed attendance breakdown for each staff member showing before and after regularization. Attendance % calculated excluding holidays.
       </p>
@@ -2340,7 +2056,7 @@ function buildStaffComparisonCycleWiseTableHTML(staffDataArray) {
 
   return `
     <div class="table-container">
-      <h3 class="section-title">📊 Cycle-wise Staff Comparison</h3>
+      <h3 class="section-title">📊Cycle-wise Staff Comparison</h3>
       <p style="color: #64748b; margin-bottom: 15px;">
         Detailed attendance breakdown for each staff member across all cycles
       </p>
@@ -2646,12 +2362,16 @@ function buildStaffComparisonHTML(staffDataArray) {
 ========================================================= */
 app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
   console.log("--------------------------------------------------");
-  console.log("➡️ STAFF API HIT:", new Date().toISOString());
+  console.log("âž¡ï¸ STAFF API HIT:", new Date().toISOString());
 
   try {
     const staff_id = req.params.staff_id;
     const numCycles = parseInt(req.query.cycles) || 6;
-    console.log("STEP 0️⃣ Staff ID:", staff_id, "Cycles:", numCycles);
+    const cycle_ids = req.query.cycle_ids ? req.query.cycle_ids.split(',').map(id => parseInt(id)) : null;
+    
+    console.log("STEP 0ï¸☕ Staff ID:", staff_id);
+    console.log("Cycles Mode:", cycle_ids ? "Database Cycles" : "Dynamic Cycles");
+    console.log("Cycle IDs:", cycle_ids || "Using numCycles: " + numCycles);
 
     const [rows] = await db.query(
       "SELECT staff_first_name, staff_last_name, staff_head FROM dice_staff WHERE staff_id=?",
@@ -2673,7 +2393,19 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
     const dataM = rowsM[0] || {};
     const staff_managaer = `${dataM.staff_first_name || ""} ${dataM.staff_last_name || ""}`.trim();
 
-    const cycles = buildCycles(numCycles);
+    // âœ… USE DATABASE CYCLES IF PROVIDED, OTHERWISE USE DYNAMIC CYCLES
+    let cycles;
+    if (cycle_ids && cycle_ids.length > 0) {
+      cycles = await buildCyclesFromDatabase(cycle_ids);
+      console.log("âœ… Using Database Cycles:", cycles.length);
+    } else {
+      cycles = buildCycles(numCycles);
+      console.log("âœ… Using Dynamic Cycles:", cycles.length);
+    }
+
+    if (cycles.length === 0) {
+      return res.status(400).send("No valid cycles found");
+    }
 
     const statusTemplate = {
       present: 0, absent: 0, on_leave: 0, halfday: 0,
@@ -2915,7 +2647,7 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
       after_time: minutesToTimeString(overallAfterMinutes)
     };
 
-    console.log("STEP 7️⃣ Calling Mistral AI...");
+    console.log("STEP 7️☕ Calling Mistral AI...");
     const ai = await fetch("https://api.mistral.ai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -3036,12 +2768,17 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
 ========================================================= */
 app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
   console.log("--------------------------------------------------");
-  console.log("➡️ DEPARTMENT API HIT:", new Date().toISOString());
+  console.log("⚡ DEPARTMENT API HIT:", new Date().toISOString());
 
   try {
+     
     const department_id = req.params.department_id;
     const numCycles = parseInt(req.query.cycles) || 6;
-    console.log("Department ID:", department_id, "Cycles:", numCycles);
+    const cycle_ids = req.query.cycle_ids ? req.query.cycle_ids.split(',').map(id => parseInt(id)) : null;
+    
+    console.log("Department ID:", department_id);
+    console.log("Cycles Mode:", cycle_ids ? "Database Cycles" : "Dynamic Cycles");
+    console.log("Cycle IDs:", cycle_ids || "Using numCycles: " + numCycles);
 
     const [deptInfo] = await db.query(
       "SELECT staff_department_name as department_name, staff_department_head as department_head_staff_id FROM dice_staff_department WHERE staff_department_id=?",
@@ -3073,8 +2810,20 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
 
     console.log("Staff count:", staffList.length);
 
-    const cycles = buildCycles(numCycles);
+    // âœ… USE DATABASE CYCLES IF PROVIDED
+    let cycles;
+    if (cycle_ids && cycle_ids.length > 0) {
+      cycles = await buildCyclesFromDatabase(cycle_ids);
+      console.log("âœ… Using Database Cycles:", cycles.length);
+    } else {
+      cycles = buildCycles(numCycles);
+      console.log("âœ… Using Dynamic Cycles:", cycles.length);
+    }
 
+    if (cycles.length === 0) {
+      return res.status(400).send("No valid cycles found");
+    }
+    
     const statusKeyMap = {
       "Present": "present",
       "Absent": "absent",
@@ -3412,15 +3161,19 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
 ========================================================= */
 app.post("/departmentAttendanceReport/:department_id", async (req, res) => {
   console.log("--------------------------------------------------");
-  console.log("➡️ DEPARTMENT API HIT (WITH STAFF SELECTION):", new Date().toISOString());
+  console.log("⚡ DEPARTMENT API HIT (WITH STAFF SELECTION):", new Date().toISOString());
 
   try {
-    const department_id = req.params.department_id;
+     const department_id = req.params.department_id;
     const numCycles = parseInt(req.query.cycles) || parseInt(req.body.cycles) || 6;
-    const selectedStaffIds = req.body.staff_ids; // Array of staff IDs to include
+    const selectedStaffIds = req.body.staff_ids;
+    const cycle_ids = req.query.cycle_ids ? req.query.cycle_ids.split(',').map(id => parseInt(id)) : 
+                      (req.body.cycle_ids ? req.body.cycle_ids : null);
     
-    console.log("Department ID:", department_id, "Cycles:", numCycles);
-    console.log("Selected Staff IDs:", selectedStaffIds);
+    console.log("Department ID:", department_id);
+    console.log("Cycles Mode:", cycle_ids ? "Database Cycles" : "Dynamic Cycles");
+    console.log("Cycle IDs:", cycle_ids || "Using numCycles: " + numCycles);
+    
 
     const [deptInfo] = await db.query(
       "SELECT staff_department_name as department_name, staff_department_head as department_head_staff_id FROM dice_staff_department WHERE staff_department_id=?",
@@ -3467,7 +3220,18 @@ app.post("/departmentAttendanceReport/:department_id", async (req, res) => {
       return res.status(400).send("No valid staff members found for the provided selection");
     }
 
-    const cycles = buildCycles(numCycles);
+    let cycles;
+    if (cycle_ids && cycle_ids.length > 0) {
+      cycles = await buildCyclesFromDatabase(cycle_ids);
+      console.log("âœ… Using Database Cycles:", cycles.length);
+    } else {
+      cycles = buildCycles(numCycles);
+      console.log("âœ… Using Dynamic Cycles:", cycles.length);
+    }
+
+    if (cycles.length === 0) {
+      return res.status(400).send("No valid cycles found");
+    }
 
     const statusKeyMap = {
       "Present": "present",
@@ -3813,18 +3577,32 @@ app.post("/departmentAttendanceReport/:department_id", async (req, res) => {
 ========================================================= */
 app.post("/departmentComparisonReport", async (req, res) => {
   console.log("--------------------------------------------------");
-  console.log("➡️ DEPARTMENT COMPARISON API HIT:", new Date().toISOString());
+  console.log("⚡ DEPARTMENT COMPARISON API HIT:", new Date().toISOString());
 
   try {
-    const { department_ids, cycles: numCycles = 6 } = req.body;
+    const { department_ids, cycles: numCycles = 6, cycle_ids } = req.body;
 
     if (!department_ids || !Array.isArray(department_ids) || department_ids.length < 2) {
       return res.status(400).send("Please provide at least 2 department IDs for comparison");
     }
 
-    console.log("Comparing departments:", department_ids, "Cycles:", numCycles);
+    console.log("Comparing departments:", department_ids);
+    console.log("Cycles Mode:", cycle_ids ? "Database Cycles" : "Dynamic Cycles");
+    console.log("Cycle IDs:", cycle_ids || "Using numCycles: " + numCycles);
 
-    const cycles = buildCycles(numCycles);
+    // âœ… USE DATABASE CYCLES IF PROVIDED
+    let cycles;
+    if (cycle_ids && cycle_ids.length > 0) {
+      cycles = await buildCyclesFromDatabase(cycle_ids);
+      console.log("âœ… Using Database Cycles:", cycles.length);
+    } else {
+      cycles = buildCycles(numCycles);
+      console.log("âœ… Using Dynamic Cycles:", cycles.length);
+    }
+
+    if (cycles.length === 0) {
+      return res.status(400).send("No valid cycles found");
+    }
 
     const statusKeyMap = {
       "Present": "present",
@@ -4098,18 +3876,33 @@ app.post("/departmentComparisonReport", async (req, res) => {
 ========================================================= */
 app.post("/staffComparisonReport", async (req, res) => {
   console.log("--------------------------------------------------");
-  console.log("➡️ COMPARISON API HIT:", new Date().toISOString());
+  console.log("⚡ COMPARISON API HIT:", new Date().toISOString());
 
   try {
-    const { staff_ids, cycles: numCycles = 6 } = req.body;
+    const { staff_ids, cycles: numCycles = 6, cycle_ids } = req.body;
 
     if (!staff_ids || !Array.isArray(staff_ids) || staff_ids.length < 2) {
       return res.status(400).send("Please provide at least 2 staff IDs for comparison");
     }
 
-    console.log("Comparing staff:", staff_ids, "Cycles:", numCycles);
+    console.log("Comparing staff:", staff_ids);
+    console.log("Cycles Mode:", cycle_ids ? "Database Cycles" : "Dynamic Cycles");
+    console.log("Cycle IDs:", cycle_ids || "Using numCycles: " + numCycles);
 
-    const cycles = buildCycles(numCycles);
+
+    // âœ… USE DATABASE CYCLES IF PROVIDED
+    let cycles;
+    if (cycle_ids && cycle_ids.length > 0) {
+      cycles = await buildCyclesFromDatabase(cycle_ids);
+      console.log("âœ… Using Database Cycles:", cycles.length);
+    } else {
+      cycles = buildCycles(numCycles);
+      console.log("âœ… Using Dynamic Cycles:", cycles.length);
+    }
+
+    if (cycles.length === 0) {
+      return res.status(400).send("No valid cycles found");
+    }
 
     const statusKeyMap = {
       "Present": "present",
@@ -4358,7 +4151,7 @@ app.post("/staffComparisonReport", async (req, res) => {
     res.send(finalHTML);
 
   } catch (e) {
-    console.error("❌ ERROR:", e);
+    console.error("ERROR:", e);
     res.status(500).send("Internal Server Error");
   }
 });
@@ -4367,8 +4160,8 @@ app.post("/staffComparisonReport", async (req, res) => {
    SERVER START
 ========================================================= */
 app.listen(3000, () => {
-  console.log("🚀 Node Attendance Server running on port 3000");
-  console.log("📍 Endpoints:");
+  console.log("Node Attendance Server running on port 3000");
+  console.log("Endpoints:");
   console.log("   - GET  /staffAttendanceAnalysisReportUpdate/:staff_id?cycles=N");
   console.log("   - GET  /departmentAttendanceReport/:department_id?cycles=N");
   console.log("   - POST /staffComparisonReport (body: {staff_ids: [], cycles: N})");

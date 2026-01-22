@@ -1,0 +1,909 @@
+/* =========================================================
+   HR ANALYTICS DASHBOARD - GLOBAL STYLES
+========================================================= */
+
+/* Reset & Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 40px 20px;
+  color: #1f2937;
+}
+
+/* =========================================================
+   REPORT CONTAINER STYLES
+========================================================= */
+
+.report-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  overflow: hidden;
+}
+
+.report-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 40px;
+  text-align: center;
+}
+
+.report-header h1 {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+}
+
+.report-header .subtitle {
+  font-size: 16px;
+  opacity: 0.9;
+}
+
+/* =========================================================
+   INFO CARDS STYLES
+========================================================= */
+
+.staff-info, .department-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  padding: 30px 40px;
+  background: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.info-card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  border-left: 4px solid #667eea;
+}
+
+.info-card .label {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: #64748b;
+  font-weight: 600;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.info-card .value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+/* =========================================================
+   SECTION STYLES
+========================================================= */
+
+.section {
+  padding: 40px;
+}
+
+.section-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 3px solid #667eea;
+  display: inline-block;
+}
+
+/* =========================================================
+   CHART CONTAINER STYLES
+========================================================= */
+
+.chart-container {
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  margin-bottom: 30px;
+}
+
+.chart-wrapper {
+  position: relative;
+  height: 400px;
+  margin-top: 20px;
+}
+
+/* =========================================================
+   TABLE STYLES
+========================================================= */
+
+.table-container {
+  overflow-x: auto;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  margin-bottom: 30px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+thead {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+thead th {
+  padding: 16px;
+  text-align: center;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+tbody tr {
+  border-bottom: 1px solid #e2e8f0;
+  transition: background-color 0.2s;
+}
+
+tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+tbody td {
+  padding: 16px;
+  text-align: center;
+}
+
+tbody tr td:first-child {
+  font-weight: 600;
+  text-align: left;
+  color: #475569;
+  background: #f8fafc;
+}
+
+/* =========================================================
+   VALUE BADGES
+========================================================= */
+
+.value-before {
+  color: #dc2626;
+  font-weight: 700;
+  background: #fee2e2;
+  padding: 6px 12px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.value-after {
+  color: #16a34a;
+  font-weight: 700;
+  background: #dcfce7;
+  padding: 6px 12px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+/* =========================================================
+   COMPARISON GRID
+========================================================= */
+
+.comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-top: 30px;
+}
+
+/* =========================================================
+   STAFF CARD STYLES
+========================================================= */
+
+.staff-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  border-top: 4px solid #667eea;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.staff-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+
+.staff-card h4 {
+  font-size: 18px;
+  color: #1e293b;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 14px;
+}
+
+.stat-label {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.stat-value.positive {
+  color: #16a34a;
+}
+
+.stat-value.negative {
+  color: #dc2626;
+}
+
+.stat-value-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* =========================================================
+   BEFORE/AFTER BADGES
+========================================================= */
+
+.before-after-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.before-after-badge.before {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.before-after-badge.after {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+/* =========================================================
+   METRIC BADGES
+========================================================= */
+
+.metric-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 12px;
+}
+
+.metric-badge.excellent {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.metric-badge.good {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.metric-badge.warning {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.metric-badge.poor {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* =========================================================
+   STATUS CHANGED HIGHLIGHTING
+========================================================= */
+
+.status-changed {
+  background: #fef3c7 !important;
+}
+
+.status-changed:hover {
+  background: #fde68a !important;
+}
+
+tbody tr.status-changed td:first-child {
+  background: #fef3c7;
+}
+
+/* =========================================================
+   DEPARTMENT SUMMARY
+========================================================= */
+
+.department-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.summary-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  text-align: center;
+}
+
+.summary-card .number {
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.summary-card .label {
+  font-size: 14px;
+  opacity: 0.9;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* =========================================================
+   AI ANALYSIS SECTION
+========================================================= */
+
+.ai-analysis {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  padding: 30px;
+  border-radius: 16px;
+  border-left: 6px solid #0284c7;
+  margin-top: 30px;
+}
+
+.ai-analysis h3 {
+  color: #0c4a6e;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ai-analysis h3:before {
+  content: "🤖";
+  font-size: 24px;
+}
+
+/* =========================================================
+   REPORT FOOTER
+========================================================= */
+
+.report-footer {
+  text-align: center;
+  padding: 30px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 14px;
+  border-top: 2px solid #e2e8f0;
+}
+
+/* =========================================================
+   DASHBOARD SPECIFIC STYLES
+========================================================= */
+
+.dashboard-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.dashboard-header {
+  background: white;
+  padding: 30px 40px;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.dashboard-header h1 {
+  font-size: 32px;
+  color: #1e293b;
+  margin-bottom: 10px;
+}
+
+.dashboard-header p {
+  color: #64748b;
+  font-size: 16px;
+}
+
+/* =========================================================
+   STATS GRID
+========================================================= */
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  padding: 20px;
+  background: white;
+}
+
+.stat-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 25px;
+  border-radius: 15px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  transition: transform 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+}
+
+.stat-card .number {
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.stat-card .label {
+  font-size: 14px;
+  opacity: 0.9;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* =========================================================
+   REPORTS SECTION
+========================================================= */
+
+.reports-section {
+  background: white;
+  padding: 40px;
+  border-radius: 0 0 20px 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.report-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 30px;
+  margin-bottom: 40px;
+}
+
+.report-card {
+  background: #f8fafc;
+  border-radius: 15px;
+  padding: 30px;
+  border: 2px solid #e2e8f0;
+  transition: all 0.3s;
+}
+
+.report-card:hover {
+  border-color: #667eea;
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+}
+
+.report-card h3 {
+  font-size: 20px;
+  color: #1e293b;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.report-card .description {
+  color: #64748b;
+  font-size: 14px;
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+/* =========================================================
+   FORM STYLES
+========================================================= */
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 8px;
+}
+
+.form-group select,
+.form-group input {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+  background: white;
+}
+
+.form-group select:focus,
+.form-group input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.form-group .hint {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 5px;
+}
+
+/* =========================================================
+   SEARCHABLE SELECT STYLES
+========================================================= */
+
+.searchable-select {
+  position: relative;
+}
+
+.searchable-select input.search-input {
+  cursor: pointer;
+}
+
+.searchable-select .dropdown-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 2px solid #667eea;
+  border-radius: 8px;
+  max-height: 250px;
+  overflow-y: auto;
+  z-index: 1000;
+  display: none;
+  margin-top: 5px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.searchable-select .dropdown-list.show {
+  display: block;
+}
+
+.searchable-select .dropdown-item {
+  padding: 12px 15px;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background-color 0.2s;
+}
+
+.searchable-select .dropdown-item:hover {
+  background-color: #f8fafc;
+}
+
+.searchable-select .dropdown-item.selected {
+  background-color: #ede9fe;
+  font-weight: 600;
+}
+
+.searchable-select .dropdown-item .item-id {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.searchable-select .no-results {
+  padding: 12px 15px;
+  color: #94a3b8;
+  text-align: center;
+  font-style: italic;
+}
+
+/* =========================================================
+   BUTTON STYLES
+========================================================= */
+
+.button-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.btn {
+  flex: 1;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   STATUS MESSAGE STYLES
+========================================================= */
+
+.status-message {
+  margin-top: 15px;
+  padding: 12px 15px;
+  border-radius: 8px;
+  font-size: 14px;
+  display: none;
+}
+
+.status-message.success {
+  background: #dcfce7;
+  color: #16a34a;
+  border-left: 4px solid #16a34a;
+}
+
+.status-message.error {
+  background: #fee2e2;
+  color: #dc2626;
+  border-left: 4px solid #dc2626;
+}
+
+.status-message.loading {
+  background: #dbeafe;
+  color: #2563eb;
+  border-left: 4px solid #2563eb;
+}
+
+/* =========================================================
+   RECENT REPORTS STYLES
+========================================================= */
+
+.recent-reports {
+  margin-top: 40px;
+  padding: 30px;
+  background: #f8fafc;
+  border-radius: 15px;
+}
+
+.recent-reports h3 {
+  font-size: 20px;
+  color: #1e293b;
+  margin-bottom: 20px;
+}
+
+.report-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.report-item {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-left: 4px solid #667eea;
+  transition: all 0.2s;
+}
+
+.report-item:hover {
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  transform: translateX(5px);
+}
+
+.report-info {
+  flex: 1;
+}
+
+.report-info .title {
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 5px;
+}
+
+.report-info .meta {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.report-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.icon-btn {
+  padding: 8px 16px;
+  background: #f1f5f9;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #667eea;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.icon-btn:hover {
+  background: #667eea;
+  color: white;
+}
+
+/* =========================================================
+   FOOTER STYLES
+========================================================= */
+
+.footer {
+  text-align: center;
+  padding: 20px;
+  color: white;
+  font-size: 14px;
+  margin-top: 20px;
+}
+
+/* =========================================================
+   LOADING SPINNER
+========================================================= */
+
+.loading-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* =========================================================
+   EXAMPLES SECTION
+========================================================= */
+
+.examples {
+  background: #fef3c7;
+  border-left: 4px solid #f59e0b;
+  padding: 15px;
+  border-radius: 8px;
+  margin-top: 20px;
+}
+
+.examples .title {
+  font-weight: 600;
+  color: #92400e;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.examples .example-list {
+  font-size: 13px;
+  color: #78350f;
+  line-height: 1.8;
+}
+
+/* =========================================================
+   MULTI-SELECT STYLES
+========================================================= */
+
+.multi-select-container {
+  position: relative;
+}
+
+.selected-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.selected-item {
+  background: #ede9fe;
+  color: #5b21b6;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.selected-item .remove {
+  cursor: pointer;
+  font-weight: bold;
+  color: #7c3aed;
+}
+
+.selected-item .remove:hover {
+  color: #6d28d9;
+}
+
+/* =========================================================
+   RESPONSIVE DESIGN
+========================================================= */
+
+@media (max-width: 768px) {
+  .report-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .button-group {
+    flex-direction: column;
+  }
+
+  .report-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .comparison-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
+   PRINT STYLES
+========================================================= */
+
+@media print {
+  body {
+    background: white;
+    padding: 0;
+  }
+  
+  .report-container {
+    box-shadow: none;
+    border-radius: 0;
+  }
+
+  .chart-wrapper {
+    page-break-inside: avoid;
+  }
+
+  .table-container {
+    page-break-inside: avoid;
+  }
+
+  .staff-card {
+    page-break-inside: avoid;
+  }
+}
