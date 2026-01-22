@@ -4,448 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HR Analytics Dashboard - Attendance Reports</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      padding: 20px;
-    }
-
-    .dashboard-container {
-      max-width: 1400px;
-      margin: 0 auto;
-    }
-
-    .dashboard-header {
-      background: white;
-      padding: 30px 40px;
-      border-radius: 20px 20px 0 0;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    }
-
-    .dashboard-header h1 {
-      font-size: 32px;
-      color: #1e293b;
-      margin-bottom: 10px;
-    }
-
-    .dashboard-header p {
-      color: #64748b;
-      font-size: 16px;
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 20px;
-      padding: 20px;
-      background: white;
-    }
-
-    .stat-card {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 25px;
-      border-radius: 15px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-      transition: transform 0.2s;
-    }
-
-    .stat-card:hover {
-      transform: translateY(-5px);
-    }
-
-    .stat-card .number {
-      font-size: 36px;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-
-    .stat-card .label {
-      font-size: 14px;
-      opacity: 0.9;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .reports-section {
-      background: white;
-      padding: 40px;
-      border-radius: 0 0 20px 20px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    }
-
-    .section-title {
-      font-size: 24px;
-      color: #1e293b;
-      margin-bottom: 30px;
-      padding-bottom: 15px;
-      border-bottom: 3px solid #667eea;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .report-cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-      gap: 30px;
-      margin-bottom: 40px;
-    }
-
-    .report-card {
-      background: #f8fafc;
-      border-radius: 15px;
-      padding: 30px;
-      border: 2px solid #e2e8f0;
-      transition: all 0.3s;
-    }
-
-    .report-card:hover {
-      border-color: #667eea;
-      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
-    }
-
-    .report-card h3 {
-      font-size: 20px;
-      color: #1e293b;
-      margin-bottom: 15px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .report-card .description {
-      color: #64748b;
-      font-size: 14px;
-      margin-bottom: 20px;
-      line-height: 1.6;
-    }
-
-    .form-group {
-      margin-bottom: 20px;
-    }
-
-    .form-group label {
-      display: block;
-      font-size: 14px;
-      font-weight: 600;
-      color: #475569;
-      margin-bottom: 8px;
-    }
-
-    .form-group select,
-    .form-group input {
-      width: 100%;
-      padding: 12px 15px;
-      border: 2px solid #e2e8f0;
-      border-radius: 8px;
-      font-size: 14px;
-      transition: border-color 0.2s;
-      background: white;
-    }
-
-    .form-group select:focus,
-    .form-group input:focus {
-      outline: none;
-      border-color: #667eea;
-    }
-
-    .form-group .hint {
-      font-size: 12px;
-      color: #94a3b8;
-      margin-top: 5px;
-    }
-
-    /* Custom searchable select styling */
-    .searchable-select {
-      position: relative;
-    }
-
-    .searchable-select input.search-input {
-      cursor: pointer;
-    }
-
-    .searchable-select .dropdown-list {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background: white;
-      border: 2px solid #667eea;
-      border-radius: 8px;
-      max-height: 250px;
-      overflow-y: auto;
-      z-index: 1000;
-      display: none;
-      margin-top: 5px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-
-    .searchable-select .dropdown-list.show {
-      display: block;
-    }
-
-    .searchable-select .dropdown-item {
-      padding: 12px 15px;
-      cursor: pointer;
-      border-bottom: 1px solid #f1f5f9;
-      transition: background-color 0.2s;
-    }
-
-    .searchable-select .dropdown-item:hover {
-      background-color: #f8fafc;
-    }
-
-    .searchable-select .dropdown-item.selected {
-      background-color: #ede9fe;
-      font-weight: 600;
-    }
-
-    .searchable-select .dropdown-item .item-id {
-      color: #94a3b8;
-      font-size: 12px;
-    }
-
-    .searchable-select .no-results {
-      padding: 12px 15px;
-      color: #94a3b8;
-      text-align: center;
-      font-style: italic;
-    }
-
-    .button-group {
-      display: flex;
-      gap: 10px;
-      margin-top: 20px;
-    }
-
-    .btn {
-      flex: 1;
-      padding: 12px 24px;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-align: center;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-    }
-
-    .btn-primary:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-    }
-
-    .btn-primary:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    .status-message {
-      margin-top: 15px;
-      padding: 12px 15px;
-      border-radius: 8px;
-      font-size: 14px;
-      display: none;
-    }
-
-    .status-message.success {
-      background: #dcfce7;
-      color: #16a34a;
-      border-left: 4px solid #16a34a;
-    }
-
-    .status-message.error {
-      background: #fee2e2;
-      color: #dc2626;
-      border-left: 4px solid #dc2626;
-    }
-
-    .status-message.loading {
-      background: #dbeafe;
-      color: #2563eb;
-      border-left: 4px solid #2563eb;
-    }
-
-    .recent-reports {
-      margin-top: 40px;
-      padding: 30px;
-      background: #f8fafc;
-      border-radius: 15px;
-    }
-
-    .recent-reports h3 {
-      font-size: 20px;
-      color: #1e293b;
-      margin-bottom: 20px;
-    }
-
-    .report-list {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-
-    .report-item {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-left: 4px solid #667eea;
-      transition: all 0.2s;
-    }
-
-    .report-item:hover {
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-      transform: translateX(5px);
-    }
-
-    .report-info {
-      flex: 1;
-    }
-
-    .report-info .title {
-      font-weight: 600;
-      color: #1e293b;
-      margin-bottom: 5px;
-    }
-
-    .report-info .meta {
-      font-size: 12px;
-      color: #94a3b8;
-    }
-
-    .report-actions {
-      display: flex;
-      gap: 10px;
-    }
-
-    .icon-btn {
-      padding: 8px 16px;
-      background: #f1f5f9;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 12px;
-      color: #667eea;
-      font-weight: 600;
-      transition: all 0.2s;
-    }
-
-    .icon-btn:hover {
-      background: #667eea;
-      color: white;
-    }
-
-    .footer {
-      text-align: center;
-      padding: 20px;
-      color: white;
-      font-size: 14px;
-      margin-top: 20px;
-    }
-
-    .loading-spinner {
-      display: inline-block;
-      width: 16px;
-      height: 16px;
-      border: 2px solid #f3f3f3;
-      border-top: 2px solid #667eea;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-right: 8px;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .examples {
-      background: #fef3c7;
-      border-left: 4px solid #f59e0b;
-      padding: 15px;
-      border-radius: 8px;
-      margin-top: 20px;
-    }
-
-    .examples .title {
-      font-weight: 600;
-      color: #92400e;
-      margin-bottom: 10px;
-      font-size: 14px;
-    }
-
-    .examples .example-list {
-      font-size: 13px;
-      color: #78350f;
-      line-height: 1.8;
-    }
-
-    /* Multi-select styling */
-    .multi-select-container {
-      position: relative;
-    }
-
-    .selected-items {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 8px;
-    }
-
-    .selected-item {
-      background: #ede9fe;
-      color: #5b21b6;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 13px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .selected-item .remove {
-      cursor: pointer;
-      font-weight: bold;
-      color: #7c3aed;
-    }
-
-    .selected-item .remove:hover {
-      color: #6d28d9;
-    }
-
-    @media (max-width: 768px) {
-      .report-cards {
-        grid-template-columns: 1fr;
-      }
-
-      .button-group {
-        flex-direction: column;
-      }
-
-      .report-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 15px;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
   <div class="dashboard-container">
@@ -462,8 +21,8 @@
         <div class="label">Report Types</div>
       </div>
       <div class="stat-card">
-        <div class="number">1-999</div>
-        <div class="label">Dynamic Cycles</div>
+        <div class="number">DB</div>
+        <div class="label">Cycle Selection</div>
       </div>
       <div class="stat-card">
         <div class="number">AI</div>
@@ -501,9 +60,22 @@
             </div>
 
             <div class="form-group">
-              <label for="staff_cycles">Number of Cycles</label>
-              <input type="number" id="staff_cycles" name="cycles" value="6" min="1" max="999" placeholder="6">
-              <div class="hint">Default: 6 cycles (6 months)</div>
+              <label for="staff_cycle_select">Select Specific Cycles (Optional)</label>
+              <div class="multi-select-container">
+                <div class="searchable-select" id="staffCycleSelectContainer">
+                  <input type="text" class="search-input" id="staff_cycle_search" 
+                         placeholder="Search and select cycles..." autocomplete="off">
+                  <div class="dropdown-list" id="staffCycleDropdown"></div>
+                </div>
+                <div class="selected-items" id="selectedStaffCycleList"></div>
+              </div>
+              <div class="hint">Leave empty to use the number of cycles below, or select specific cycles from database</div>
+            </div>
+
+            <div class="form-group">
+              <label for="staff_cycles">Number of Cycles (if not selecting specific)</label>
+              <input type="number" id="staff_cycles" name="cycles" value="0"  placeholder="0">
+              <div class="hint">Default: 6 cycles (6 months) - Used only if no specific cycles selected above</div>
             </div>
 
             <div class="button-group">
@@ -544,7 +116,6 @@
               <div class="hint">Type to search or scroll to select</div>
             </div>
 
-            <!-- ✅ NEW: Staff Selection for Department Report -->
             <div class="form-group">
               <label for="dept_staff_select">Select Staff (Optional)</label>
               <div class="multi-select-container">
@@ -558,9 +129,22 @@
             </div>
 
             <div class="form-group">
-              <label for="dept_cycles">Number of Cycles</label>
-              <input type="number" id="dept_cycles" name="cycles" value="6" min="1" max="999" placeholder="6">
-              <div class="hint">Default: 6 cycles (6 months)</div>
+              <label for="dept_cycle_select">Select Specific Cycles (Optional)</label>
+              <div class="multi-select-container">
+                <div class="searchable-select" id="deptCycleSelectContainer">
+                  <input type="text" class="search-input" id="dept_cycle_search" 
+                         placeholder="Search and select cycles..." autocomplete="off">
+                  <div class="dropdown-list" id="deptCycleDropdown"></div>
+                </div>
+                <div class="selected-items" id="selectedDeptCycleList"></div>
+              </div>
+              <div class="hint">Leave empty to use the number of cycles below, or select specific cycles from database</div>
+            </div>
+
+            <div class="form-group">
+              <label for="dept_cycles">Number of Cycles (if not selecting specific)</label>
+              <input type="number" id="dept_cycles" name="cycles" value="0"  placeholder="0">
+              <div class="hint">Default: 6 cycles (6 months) - Used only if no specific cycles selected above</div>
             </div>
 
             <div class="button-group">
@@ -604,9 +188,22 @@
             </div>
 
             <div class="form-group">
-              <label for="comp_cycles">Number of Cycles</label>
-              <input type="number" id="comp_cycles" name="cycles" value="6" min="1" max="999" placeholder="6">
-              <div class="hint">Default: 6 cycles (6 months)</div>
+              <label for="comp_cycle_select">Select Specific Cycles (Optional)</label>
+              <div class="multi-select-container">
+                <div class="searchable-select" id="compCycleSelectContainer">
+                  <input type="text" class="search-input" id="comp_cycle_search" 
+                         placeholder="Search and select cycles..." autocomplete="off">
+                  <div class="dropdown-list" id="compCycleDropdown"></div>
+                </div>
+                <div class="selected-items" id="selectedCompCycleList"></div>
+              </div>
+              <div class="hint">Leave empty to use the number of cycles below, or select specific cycles from database</div>
+            </div>
+
+            <div class="form-group">
+              <label for="comp_cycles">Number of Cycles (if not selecting specific)</label>
+              <input type="number" id="comp_cycles" name="cycles" value="0"  placeholder="0">
+              <div class="hint">Default: 6 cycles (6 months) - Used only if no specific cycles selected above</div>
             </div>
 
             <div class="button-group">
@@ -650,9 +247,22 @@
             </div>
 
             <div class="form-group">
-              <label for="comp_dept_cycles">Number of Cycles</label>
-              <input type="number" id="comp_dept_cycles" name="cycles" value="6" min="1" max="999" placeholder="6">
-              <div class="hint">Default: 6 cycles (6 months)</div>
+              <label for="comp_dept_cycle_select">Select Specific Cycles (Optional)</label>
+              <div class="multi-select-container">
+                <div class="searchable-select" id="compDeptCycleSelectContainer">
+                  <input type="text" class="search-input" id="comp_dept_cycle_search" 
+                         placeholder="Search and select cycles..." autocomplete="off">
+                  <div class="dropdown-list" id="compDeptCycleDropdown"></div>
+                </div>
+                <div class="selected-items" id="selectedCompDeptCycleList"></div>
+              </div>
+              <div class="hint">Leave empty to use the number of cycles below, or select specific cycles from database</div>
+            </div>
+
+            <div class="form-group">
+              <label for="comp_dept_cycles">Number of Cycles (if not selecting specific)</label>
+              <input type="number" id="comp_dept_cycles" name="cycles" value="0"  placeholder="0">
+              <div class="hint">Default: 6 cycles (6 months) - Used only if no specific cycles selected above</div>
             </div>
 
             <div class="button-group">
@@ -678,7 +288,7 @@
 
       <!-- Recent Reports -->
       <div class="recent-reports">
-        <h3>🕐 Recently Generated Reports</h3>
+        <h3>🕒 Recently Generated Reports</h3>
         <div class="report-list" id="recentReportsList">
           <div style="text-align: center; color: #94a3b8; padding: 20px;">
             No reports generated yet. Create your first report above!
@@ -689,7 +299,7 @@
 
     <!-- Footer -->
     <div class="footer">
-      <p><strong>HR Analytics System v1.3.0</strong></p>
+      <p><strong>HR Analytics System v2.0.0</strong></p>
       <p>Powered by Node.js, MySQL, and Mistral AI</p>
       <p style="margin-top: 10px; font-size: 12px; opacity: 0.8;">
         © 2025 - Confidential and Proprietary
@@ -705,16 +315,24 @@
     let selectedComparisonDepartments = [];
     let recentReports = [];
     
-    // ✅ NEW: Variables for department staff selection
+    // Variables for department staff selection
     let selectedDepartmentStaff = [];
     let departmentStaffList = [];
+
+    // Variables for cycle selection
+    let cyclesList = [];
+    let selectedStaffCycles = [];
+    let selectedDeptCycles = [];
+    let selectedCompCycles = [];
+    let selectedCompDeptCycles = [];
 
     // Initialize dashboard
     async function initDashboard() {
       try {
         await Promise.all([
           loadStaffList(),
-          loadDepartmentList()
+          loadDepartmentList(),
+          loadCyclesList()
         ]);
         loadRecentReports();
         setupEventListeners();
@@ -751,14 +369,42 @@
       }
     }
 
-    // ✅ NEW: Load staff for selected department
+    // Load cycles list from API
+    async function loadCyclesList() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/cycles/list`);
+        const data = await response.json();
+        if (data.success) {
+          cyclesList = data.data.map(cycle => ({
+            cycle_id: cycle.cycle_id,
+            cycle_name: `${cycle.cycle_month_name} ${cycle.cycle_year_no} (${formatDate(cycle.cycle_start_date)} - ${formatDate(cycle.cycle_end_date)})`,
+            start_date: cycle.cycle_start_date,
+            end_date: cycle.cycle_end_date,
+            month_name: cycle.cycle_month_name,
+            year_no: cycle.cycle_year_no
+          }));
+          console.log(`✅ Loaded ${cyclesList.length} cycles`);
+        }
+      } catch (error) {
+        console.error('Error loading cycles:', error);
+        cyclesList = [];
+      }
+    }
+
+    // Helper function to format dates
+    function formatDate(dateStr) {
+      const date = new Date(dateStr);
+      return `${date.getDate()} ${date.toLocaleString('en', {month: 'short'})} ${date.getFullYear()}`;
+    }
+
+    // Load staff for selected department
     async function loadDepartmentStaff(departmentId) {
       try {
         const response = await fetch(`${API_BASE_URL}/api/departments/${departmentId}/staff`);
         const data = await response.json();
         if (data.success) {
           departmentStaffList = data.data;
-          selectedDepartmentStaff = []; // Reset selection
+          selectedDepartmentStaff = [];
           document.getElementById('dept_staff_search').disabled = false;
           document.getElementById('dept_staff_search').placeholder = `Search from ${departmentStaffList.length} staff members...`;
           renderSelectedDepartmentStaff();
@@ -770,7 +416,7 @@
       }
     }
 
-    // ✅ NEW: Add staff to department report selection
+    // Add staff to department report selection
     function addDepartmentStaffToSelection(staffId) {
       if (!selectedDepartmentStaff.includes(staffId)) {
         selectedDepartmentStaff.push(staffId);
@@ -778,15 +424,17 @@
       }
     }
 
-    // ✅ NEW: Remove staff from department report selection
+    // Remove staff from department report selection
     function removeDepartmentStaffFromSelection(staffId) {
       selectedDepartmentStaff = selectedDepartmentStaff.filter(id => id !== staffId);
       renderSelectedDepartmentStaff();
     }
 
-    // ✅ NEW: Render selected department staff badges
+    // Render selected department staff badges
     function renderSelectedDepartmentStaff() {
       const container = document.getElementById('selectedDeptStaffList');
+      if (!container) return;
+      
       if (selectedDepartmentStaff.length === 0) {
         container.innerHTML = '';
         return;
@@ -804,7 +452,126 @@
       }).join('');
     }
 
-    // ✅ UPDATED: Setup all event listeners
+    // Cycle Selection Functions
+    function addCycleToSelection(cycleId, containerPrefix = 'staff') {
+      const selectedArray = getSelectedCyclesArray(containerPrefix);
+      if (!selectedArray.includes(cycleId)) {
+        selectedArray.push(cycleId);
+        renderSelectedCycles(containerPrefix);
+      }
+    }
+
+    function removeCycleFromSelection(cycleId, containerPrefix = 'staff') {
+      const selectedArray = getSelectedCyclesArray(containerPrefix);
+      const index = selectedArray.indexOf(cycleId);
+      if (index > -1) {
+        selectedArray.splice(index, 1);
+        renderSelectedCycles(containerPrefix);
+      }
+    }
+
+    function getSelectedCyclesArray(containerPrefix) {
+      switch(containerPrefix) {
+        case 'staff': return selectedStaffCycles;
+        case 'dept': return selectedDeptCycles;
+        case 'comp': return selectedCompCycles;
+        case 'comp_dept': return selectedCompDeptCycles;
+        default: return [];
+      }
+    }
+
+    function renderSelectedCycles(containerPrefix = 'staff') {
+      const selectedArray = getSelectedCyclesArray(containerPrefix);
+      let containerId = `selected${capitalize(containerPrefix)}CycleList`;
+      const container = document.getElementById(containerId);
+      
+      if (!container) {
+        console.warn(`Container not found: ${containerId}`);
+        return;
+      }
+      
+      if (selectedArray.length === 0) {
+        container.innerHTML = '';
+        return;
+      }
+
+      container.innerHTML = selectedArray.map(cycleId => {
+        const cycle = cyclesList.find(c => c.cycle_id === cycleId);
+        if (!cycle) return '';
+        return `
+          <div class="selected-item">
+            <span>${cycle.cycle_name}</span>
+            <span class="remove" onclick="removeCycleFromSelection(${cycleId}, '${containerPrefix}')">×</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function capitalize(str) {
+      if (str === 'comp_dept') return 'CompDept';
+      if (str === 'dept') return 'Dept';
+      if (str === 'comp') return 'Comp';
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    function setupCycleMultiSelect(searchInputId, dropdownId, containerPrefix) {
+      const searchInput = document.getElementById(searchInputId);
+      const dropdown = document.getElementById(dropdownId);
+      
+      if (!searchInput || !dropdown) {
+        console.warn(`Elements not found: ${searchInputId} or ${dropdownId}`);
+        return;
+      }
+      
+      searchInput.addEventListener('focus', () => {
+        renderCycleDropdown(dropdown, cyclesList, searchInput.value, containerPrefix, searchInputId);
+        dropdown.classList.add('show');
+      });
+
+      searchInput.addEventListener('input', () => {
+        const searchTerm = searchInput.value.toLowerCase();
+        const filtered = cyclesList.filter(cycle => 
+          cycle.cycle_name.toLowerCase().includes(searchTerm)
+        );
+        renderCycleDropdown(dropdown, filtered, searchTerm, containerPrefix, searchInputId);
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+          dropdown.classList.remove('show');
+        }
+      });
+    }
+
+    function renderCycleDropdown(dropdown, cycles, searchTerm = '', containerPrefix = 'staff', searchInputId = '') {
+      const selectedArray = getSelectedCyclesArray(containerPrefix);
+      const availableCycles = cycles.filter(cycle => !selectedArray.includes(cycle.cycle_id));
+
+      if (availableCycles.length === 0) {
+        dropdown.innerHTML = '<div class="no-results">No more cycles to select</div>';
+        return;
+      }
+
+      dropdown.innerHTML = availableCycles.map(cycle => 
+        `<div class="dropdown-item" data-value="${cycle.cycle_id}">
+          ${cycle.cycle_name}
+        </div>`
+      ).join('');
+
+      dropdown.querySelectorAll('.dropdown-item').forEach(el => {
+        el.addEventListener('click', () => {
+          const cycleId = parseInt(el.getAttribute('data-value'));
+          addCycleToSelection(cycleId, containerPrefix);
+          if (searchInputId) {
+            const searchInput = document.getElementById(searchInputId);
+            if (searchInput) searchInput.value = '';
+          }
+          renderCycleDropdown(dropdown, cycles, '', containerPrefix, searchInputId);
+        });
+      });
+    }
+
+    // Setup all event listeners
     function setupEventListeners() {
       // Staff select
       setupSearchableSelect('staff_search', 'staffDropdown', 'staff_id', staffList, 
@@ -812,18 +579,23 @@
         (item) => item.staff_id
       );
 
-      // ⭐ FIXED: Department select with callback to load staff
+      // Department select with callback to load staff
       setupSearchableSelect('dept_search', 'deptDropdown', 'department_id', departmentList,
         (item) => `${item.department_name} <span class="item-id">(ID: ${item.department_id})</span>`,
         (item) => item.department_id,
         async (departmentId) => {
-          // Load staff when department is selected
           await loadDepartmentStaff(departmentId);
         }
       );
 
-      // ✅ NEW: Department staff multi-select
+      // Department staff multi-select
       setupMultiSelect('dept_staff_search', 'deptStaffDropdown', departmentStaffList, false, true);
+
+      // Cycle multi-selects
+      setupCycleMultiSelect('staff_cycle_search', 'staffCycleDropdown', 'staff');
+      setupCycleMultiSelect('dept_cycle_search', 'deptCycleDropdown', 'dept');
+      setupCycleMultiSelect('comp_cycle_search', 'compCycleDropdown', 'comp');
+      setupCycleMultiSelect('comp_dept_cycle_search', 'compDeptCycleDropdown', 'comp_dept');
 
       // Comparison staff multi-select
       setupMultiSelect('comp_staff_search', 'compStaffDropdown', staffList, false);
@@ -838,20 +610,18 @@
       document.getElementById('deptComparisonReportForm').addEventListener('submit', handleDepartmentComparisonReportSubmit);
     }
 
-    // ⭐ UPDATED: Setup searchable select dropdown (added onSelectCallback parameter)
+    // Setup searchable select dropdown
     function setupSearchableSelect(searchInputId, dropdownId, hiddenInputId, dataList, displayFn, valueFn, onSelectCallback) {
       const searchInput = document.getElementById(searchInputId);
       const dropdown = document.getElementById(dropdownId);
       const hiddenInput = document.getElementById(hiddenInputId);
 
-      // Show dropdown on focus
       searchInput.addEventListener('focus', () => {
         renderDropdown(dropdown, dataList, searchInput.value, displayFn, (item) => {
           searchInput.value = item.staff_name || item.department_name;
           hiddenInput.value = valueFn(item);
           dropdown.classList.remove('show');
           
-          // ⭐ FIXED: Call callback if provided
           if (onSelectCallback) {
             onSelectCallback(valueFn(item));
           }
@@ -859,7 +629,6 @@
         dropdown.classList.add('show');
       });
 
-      // Filter on input
       searchInput.addEventListener('input', () => {
         const searchTerm = searchInput.value.toLowerCase();
         const filtered = dataList.filter(item => {
@@ -872,14 +641,12 @@
           hiddenInput.value = valueFn(item);
           dropdown.classList.remove('show');
           
-          // ⭐ FIXED: Call callback if provided
           if (onSelectCallback) {
             onSelectCallback(valueFn(item));
           }
         });
       });
 
-      // Close dropdown when clicking outside
       document.addEventListener('click', (e) => {
         if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
           dropdown.classList.remove('show');
@@ -900,7 +667,6 @@
         </div>`
       ).join('');
 
-      // Add click handlers
       dropdown.querySelectorAll('.dropdown-item').forEach(el => {
         el.addEventListener('click', () => {
           const value = el.getAttribute('data-value');
@@ -910,7 +676,7 @@
       });
     }
 
-    // ✅ UPDATED: Setup multi-select for comparison (works for both staff and departments)
+    // Setup multi-select for comparison
     function setupMultiSelect(searchInputId, dropdownId, dataList, isDepartment = false, isDeptStaff = false) {
       const searchInput = document.getElementById(searchInputId);
       const dropdown = document.getElementById(dropdownId);
@@ -1086,7 +852,16 @@
       showStatus('staff', 'loading', 'Generating staff report...');
 
       try {
-        const response = await fetch(`${API_BASE_URL}/staffAttendanceAnalysisReportUpdate/${staff_id}?cycles=${cycles}`);
+        // Build URL with cycle_ids if selected, otherwise use cycles number
+        let url = `${API_BASE_URL}/staffAttendanceAnalysisReportUpdate/${staff_id}`;
+        if (selectedStaffCycles.length > 0) {
+          url += `?cycle_ids=${selectedStaffCycles.join(',')}`;
+        } else {
+          url += `?cycles=${cycles}`;
+        }
+
+        console.log('Staff Report URL:', url);
+        const response = await fetch(url);
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -1099,13 +874,18 @@
 
         const staff = staffList.find(s => s.staff_id === parseInt(staff_id));
         showStatus('staff', 'success', '✓ Report generated successfully!');
-        addToRecentReports('staff', { staff_id, staff_name: staff?.staff_name, cycles });
+        addToRecentReports('staff', { 
+          staff_id, 
+          staff_name: staff?.staff_name, 
+          cycles: selectedStaffCycles.length > 0 ? selectedStaffCycles : cycles,
+          cycle_ids: selectedStaffCycles.length > 0 ? selectedStaffCycles : null
+        });
       } catch (error) {
         showStatus('staff', 'error', '✗ Error: ' + error.message);
       }
     }
 
-    // ✅ UPDATED: Handle department report submission
+    // Handle department report submission
     async function handleDepartmentReportSubmit(e) {
       e.preventDefault();
       
@@ -1122,21 +902,40 @@
       try {
         let response;
         
+        // Build URL with cycle_ids if selected
+        let url = `${API_BASE_URL}/departmentAttendanceReport/${department_id}`;
+        const params = new URLSearchParams();
+        
+        if (selectedDeptCycles.length > 0) {
+          params.append('cycle_ids', selectedDeptCycles.join(','));
+        } else {
+          params.append('cycles', cycles);
+        }
+        
+        url += `?${params.toString()}`;
+        
         // If staff are selected, use POST with staff_ids
         if (selectedDepartmentStaff.length > 0) {
-          response = await fetch(`${API_BASE_URL}/departmentAttendanceReport/${department_id}?cycles=${cycles}`, {
+          const body = { 
+            staff_ids: selectedDepartmentStaff
+          };
+          
+          if (selectedDeptCycles.length > 0) {
+            body.cycle_ids = selectedDeptCycles;
+          } else {
+            body.cycles = parseInt(cycles);
+          }
+          
+          response = await fetch(url, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ 
-              staff_ids: selectedDepartmentStaff, 
-              cycles: parseInt(cycles) 
-            })
+            body: JSON.stringify(body)
           });
         } else {
           // Otherwise use GET for all staff
-          response = await fetch(`${API_BASE_URL}/departmentAttendanceReport/${department_id}?cycles=${cycles}`);
+          response = await fetch(url);
         }
         
         if (!response.ok) {
@@ -1153,7 +952,8 @@
         addToRecentReports('department', { 
           department_id, 
           department_name: dept?.department_name, 
-          cycles,
+          cycles: selectedDeptCycles.length > 0 ? selectedDeptCycles : cycles,
+          cycle_ids: selectedDeptCycles.length > 0 ? selectedDeptCycles : null,
           staff_ids: selectedDepartmentStaff.length > 0 ? [...selectedDepartmentStaff] : null
         });
       } catch (error) {
@@ -1175,12 +975,25 @@
       showStatus('comp', 'loading', 'Generating comparison report...');
 
       try {
+        const body = {
+          staff_ids: selectedComparisonStaff
+        };
+        
+        // Add cycle_ids if selected, otherwise add cycles number
+        if (selectedCompCycles.length > 0) {
+          body.cycle_ids = selectedCompCycles;
+        } else {
+          body.cycles = parseInt(cycles);
+        }
+        
+        console.log('Staff Comparison Request:', body);
+        
         const response = await fetch(`${API_BASE_URL}/staffComparisonReport`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ staff_ids: selectedComparisonStaff, cycles: parseInt(cycles) })
+          body: JSON.stringify(body)
         });
         
         if (!response.ok) {
@@ -1193,7 +1006,11 @@
         newWindow.document.close();
 
         showStatus('comp', 'success', '✓ Report generated successfully!');
-        addToRecentReports('comparison', { staff_ids: [...selectedComparisonStaff], cycles });
+        addToRecentReports('comparison', { 
+          staff_ids: [...selectedComparisonStaff], 
+          cycles: selectedCompCycles.length > 0 ? selectedCompCycles : cycles,
+          cycle_ids: selectedCompCycles.length > 0 ? selectedCompCycles : null
+        });
       } catch (error) {
         showStatus('comp', 'error', '✗ Error: ' + error.message);
       }
@@ -1213,12 +1030,25 @@
       showStatus('deptComp', 'loading', 'Generating department comparison report...');
 
       try {
+        const body = {
+          department_ids: selectedComparisonDepartments
+        };
+        
+        // Add cycle_ids if selected, otherwise add cycles number
+        if (selectedCompDeptCycles.length > 0) {
+          body.cycle_ids = selectedCompDeptCycles;
+        } else {
+          body.cycles = parseInt(cycles);
+        }
+        
+        console.log('Department Comparison Request:', body);
+        
         const response = await fetch(`${API_BASE_URL}/departmentComparisonReport`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ department_ids: selectedComparisonDepartments, cycles: parseInt(cycles) })
+          body: JSON.stringify(body)
         });
         
         if (!response.ok) {
@@ -1231,7 +1061,11 @@
         newWindow.document.close();
 
         showStatus('deptComp', 'success', '✓ Report generated successfully!');
-        addToRecentReports('department_comparison', { department_ids: [...selectedComparisonDepartments], cycles });
+        addToRecentReports('department_comparison', { 
+          department_ids: [...selectedComparisonDepartments], 
+          cycles: selectedCompDeptCycles.length > 0 ? selectedCompDeptCycles : cycles,
+          cycle_ids: selectedCompDeptCycles.length > 0 ? selectedCompDeptCycles : null
+        });
       } catch (error) {
         showStatus('deptComp', 'error', '✗ Error: ' + error.message);
       }
@@ -1288,17 +1122,21 @@
 
         if (report.type === 'staff') {
           title = `Staff Report - ${report.params.staff_name || 'ID: ' + report.params.staff_id}`;
-          meta = `${report.params.cycles || 6} cycles`;
+          const cycleInfo = report.params.cycle_ids ? `${report.params.cycle_ids.length} selected cycles` : `${report.params.cycles || 6} cycles`;
+          meta = cycleInfo;
         } else if (report.type === 'department') {
           title = `Department Report - ${report.params.department_name || 'ID: ' + report.params.department_id}`;
           const staffCount = report.params.staff_ids ? report.params.staff_ids.length : 'all';
-          meta = `${staffCount} staff, ${report.params.cycles || 6} cycles`;
+          const cycleInfo = report.params.cycle_ids ? `${report.params.cycle_ids.length} selected cycles` : `${report.params.cycles || 6} cycles`;
+          meta = `${staffCount} staff, ${cycleInfo}`;
         } else if (report.type === 'comparison') {
           title = `Staff Comparison - ${report.params.staff_ids.length} staff members`;
-          meta = `${report.params.staff_ids.length} staff, ${report.params.cycles || 6} cycles`;
+          const cycleInfo = report.params.cycle_ids ? `${report.params.cycle_ids.length} selected cycles` : `${report.params.cycles || 6} cycles`;
+          meta = `${report.params.staff_ids.length} staff, ${cycleInfo}`;
         } else if (report.type === 'department_comparison') {
           title = `Department Comparison - ${report.params.department_ids.length} departments`;
-          meta = `${report.params.department_ids.length} departments, ${report.params.cycles || 6} cycles`;
+          const cycleInfo = report.params.cycle_ids ? `${report.params.cycle_ids.length} selected cycles` : `${report.params.cycles || 6} cycles`;
+          meta = `${report.params.department_ids.length} departments, ${cycleInfo}`;
         }
 
         return `
@@ -1320,7 +1158,6 @@
       }).join('');
     }
 
-    // ✅ UPDATED: Regenerate report function
     function regenerateReport(reportId) {
       const report = recentReports.find(r => r.id === reportId);
       if (!report) return;
@@ -1329,13 +1166,33 @@
         document.getElementById('staff_id').value = report.params.staff_id;
         document.getElementById('staff_search').value = report.params.staff_name || '';
         document.getElementById('staff_cycles').value = report.params.cycles || 6;
+        
+        // Restore cycle selection if present
+        if (report.params.cycle_ids && Array.isArray(report.params.cycle_ids)) {
+          selectedStaffCycles = [...report.params.cycle_ids];
+          renderSelectedCycles('staff');
+        } else {
+          selectedStaffCycles = [];
+          renderSelectedCycles('staff');
+        }
+        
         document.getElementById('staffReportForm').dispatchEvent(new Event('submit'));
+        
       } else if (report.type === 'department') {
         document.getElementById('department_id').value = report.params.department_id;
         document.getElementById('dept_search').value = report.params.department_name || '';
         document.getElementById('dept_cycles').value = report.params.cycles || 6;
         
-        // ✅ NEW: Restore staff selection if any
+        // Restore cycle selection if present
+        if (report.params.cycle_ids && Array.isArray(report.params.cycle_ids)) {
+          selectedDeptCycles = [...report.params.cycle_ids];
+          renderSelectedCycles('dept');
+        } else {
+          selectedDeptCycles = [];
+          renderSelectedCycles('dept');
+        }
+        
+        // Restore staff selection if any
         if (report.params.staff_ids && report.params.staff_ids.length > 0) {
           loadDepartmentStaff(report.params.department_id).then(() => {
             selectedDepartmentStaff = [...report.params.staff_ids];
@@ -1344,15 +1201,37 @@
         }
         
         document.getElementById('departmentReportForm').dispatchEvent(new Event('submit'));
+        
       } else if (report.type === 'comparison') {
         selectedComparisonStaff = [...report.params.staff_ids];
         renderSelectedStaff();
         document.getElementById('comp_cycles').value = report.params.cycles || 6;
+        
+        // Restore cycle selection if present
+        if (report.params.cycle_ids && Array.isArray(report.params.cycle_ids)) {
+          selectedCompCycles = [...report.params.cycle_ids];
+          renderSelectedCycles('comp');
+        } else {
+          selectedCompCycles = [];
+          renderSelectedCycles('comp');
+        }
+        
         document.getElementById('comparisonReportForm').dispatchEvent(new Event('submit'));
+        
       } else if (report.type === 'department_comparison') {
         selectedComparisonDepartments = [...report.params.department_ids];
         renderSelectedDepartments();
         document.getElementById('comp_dept_cycles').value = report.params.cycles || 6;
+        
+        // Restore cycle selection if present
+        if (report.params.cycle_ids && Array.isArray(report.params.cycle_ids)) {
+          selectedCompDeptCycles = [...report.params.cycle_ids];
+          renderSelectedCycles('comp_dept');
+        } else {
+          selectedCompDeptCycles = [];
+          renderSelectedCycles('comp_dept');
+        }
+        
         document.getElementById('deptComparisonReportForm').dispatchEvent(new Event('submit'));
       }
     }
