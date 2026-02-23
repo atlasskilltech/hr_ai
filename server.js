@@ -1781,9 +1781,14 @@ function buildDateWiseStatusTableHTML(dateWiseData) {
     return '';
   }
 
+  // Sort by full_date ascending
+  const sortedData = [...dateWiseData].sort((a, b) => {
+    return new Date(a.full_date) - new Date(b.full_date);
+  });
+
   let tableRows = "";
-  
-  dateWiseData.forEach(record => {
+
+  sortedData.forEach(record => {
     const statusChanged = record.before_status !== record.after_status;
     const changeClass = statusChanged ? 'status-changed' : '';
     
