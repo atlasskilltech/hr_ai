@@ -2707,7 +2707,7 @@ app.get("/staffAttendanceAnalysisReportUpdate/:staff_id", async (req, res) => {
       </div>
       <div class="info-card">
         <div class="label">Cycles Analyzed</div>
-        <div class="value">${numCycles}</div>
+        <div class="value">${cycles.length}</div>
       </div>
     </div>
 
@@ -3103,7 +3103,7 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
       </div>
       <div class="info-card">
         <div class="label">Cycles Analyzed</div>
-        <div class="value">${numCycles}</div>
+        <div class="value">${cycles.length}</div>
       </div>
     </div>
 
@@ -3520,7 +3520,7 @@ app.post("/departmentAttendanceReport/:department_id", async (req, res) => {
       </div>
       <div class="info-card">
         <div class="label">Cycles Analyzed</div>
-        <div class="value">${numCycles}</div>
+        <div class="value">${cycles.length}</div>
       </div>
     </div>
 
@@ -3832,7 +3832,7 @@ app.post("/departmentComparisonReport", async (req, res) => {
       </div>
       <div class="info-card">
         <div class="label">Cycles Analyzed</div>
-        <div class="value">${numCycles}</div>
+        <div class="value">${cycles.length}</div>
       </div>
       <div class="info-card">
         <div class="label">Total Staff</div>
@@ -4121,7 +4121,7 @@ app.post("/staffComparisonReport", async (req, res) => {
       </div>
       <div class="info-card">
         <div class="label">Cycles Analyzed</div>
-        <div class="value">${numCycles}</div>
+        <div class="value">${cycles.length}</div>
       </div>
     </div>
 
