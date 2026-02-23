@@ -746,11 +746,8 @@ function calculateOverallSummaryCycleWiseData(cycles) {
     const non_working_days = beforeData.non_working || 0;
     const total_working_days = total_days - holidays - non_working_days;
     
-    const irregularities = (beforeData.absent || 0) + 
-                          (beforeData.halfday || 0) + 
-                          (beforeData.lesswork || 0) + 
-                          (beforeData.late_checkin_completed || 0) + 
-                          (beforeData.late_checkin_incomplete || 0) + 
+    const irregularities = (beforeData.lesswork || 0) +
+                          (beforeData.late_checkin_incomplete || 0) +
                           (beforeData.clock_out_missing || 0);
     
     const actual_present = (beforeData.present || 0) + (beforeData.late_checkin_completed || 0);
@@ -2846,12 +2843,9 @@ app.get("/departmentAttendanceReport/:department_id", async (req, res) => {
     };
 
     const countIrregularities = (summary) => {
-      return (summary.absent || 0) + 
-             (summary.late_checkin_completed || 0) + 
-             (summary.late_checkin_incomplete || 0) + 
-             (summary.clock_out_missing || 0) + 
-             (summary.lesswork || 0) + 
-             (summary.halfday || 0);
+      return (summary.lesswork || 0) +
+             (summary.late_checkin_incomplete || 0) +
+             (summary.clock_out_missing || 0);
     };
 
     const departmentData = {
@@ -3255,12 +3249,9 @@ app.post("/departmentAttendanceReport/:department_id", async (req, res) => {
     };
 
     const countIrregularities = (summary) => {
-      return (summary.absent || 0) + 
-             (summary.late_checkin_completed || 0) + 
-             (summary.late_checkin_incomplete || 0) + 
-             (summary.clock_out_missing || 0) + 
-             (summary.lesswork || 0) + 
-             (summary.halfday || 0);
+      return (summary.lesswork || 0) +
+             (summary.late_checkin_incomplete || 0) +
+             (summary.clock_out_missing || 0);
     };
 
     const departmentData = {
@@ -3627,12 +3618,9 @@ app.post("/departmentComparisonReport", async (req, res) => {
 
     // Helper function to count irregularities
     const countIrregularities = (summary) => {
-      return (summary.absent || 0) + 
-             (summary.late_checkin_completed || 0) + 
-             (summary.late_checkin_incomplete || 0) + 
-             (summary.clock_out_missing || 0) + 
-             (summary.lesswork || 0) + 
-             (summary.halfday || 0);
+      return (summary.lesswork || 0) +
+             (summary.late_checkin_incomplete || 0) +
+             (summary.clock_out_missing || 0);
     };
 
     const departmentDataArray = [];
@@ -3928,12 +3916,9 @@ app.post("/staffComparisonReport", async (req, res) => {
 
     // Helper function to count irregularities
     const countIrregularities = (summary) => {
-      return (summary.absent || 0) + 
-             (summary.late_checkin_completed || 0) + 
-             (summary.late_checkin_incomplete || 0) + 
-             (summary.clock_out_missing || 0) + 
-             (summary.lesswork || 0) + 
-             (summary.halfday || 0);
+      return (summary.lesswork || 0) +
+             (summary.late_checkin_incomplete || 0) +
+             (summary.clock_out_missing || 0);
     };
 
     const staffDataArray = [];
